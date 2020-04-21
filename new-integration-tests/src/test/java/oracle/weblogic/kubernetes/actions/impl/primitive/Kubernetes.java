@@ -1434,6 +1434,7 @@ public class Kubernetes implements LoggedTest {
    * @return V1ReplicaSetList of replica sets
    */
   public static boolean deleteReplicaSets(String namespace, String name) {
+    logger.info("Deleting replica set {0} in namespace {1}", name, namespace);
     AppsV1Api apiInstance = new AppsV1Api(apiClient);
     boolean status = false;
     try {
@@ -1444,17 +1445,12 @@ public class Kubernetes implements LoggedTest {
           null,
           0,
           null,
-          "Foreground",
+          "Background",
           null
       );
-      if (deleteNamespacedReplicaSet.getStatus().equals("Success")) {
-        logger.info("Suucessfully deleted the replica set {0} in namespace {1}", name, namespace);
-        status = true;
-      } else {
-        logger.warning("Failed to delete the replica set {0} in namespace {1}", name, namespace);
-      }
-    } catch (ApiException apex) {
-      logger.warning(dump(apex.getResponseBody()));
+      logger.info("Replica set deletion status {0}", deleteNamespacedReplicaSet.getStatus());
+    } catch(ApiException apex) {
+      logger.info("Failed to delete replica set {0}");
       logger.warning(apex.getResponseBody());
     }
     return status;
@@ -1467,6 +1463,7 @@ public class Kubernetes implements LoggedTest {
    * @return V1ReplicaSetList of replica sets
    */
   public static V1ReplicaSetList listReplicaSets(String namespace) {
+    logger.info("Listing replica sets in namespace {0}", namespace);
     AppsV1Api apiInstance = new AppsV1Api(apiClient);
     try {
       V1ReplicaSetList listNamespacedReplicaSet = apiInstance.listNamespacedReplicaSet(
@@ -1481,6 +1478,7 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           Boolean.FALSE // Watch for changes to the described resources
       );
+      logger.info(dump(listNamespacedReplicaSet));
       return listNamespacedReplicaSet;
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
