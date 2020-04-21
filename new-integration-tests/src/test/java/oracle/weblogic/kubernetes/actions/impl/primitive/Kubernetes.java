@@ -13,6 +13,7 @@ import com.google.gson.JsonElement;
 import io.kubernetes.client.custom.V1Patch;
 import io.kubernetes.client.extended.generic.GenericKubernetesApi;
 import io.kubernetes.client.extended.generic.KubernetesApiResponse;
+import io.kubernetes.client.extended.generic.options.DeleteOptions;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
@@ -70,6 +71,7 @@ public class Kubernetes implements LoggedTest {
   private static CoreV1Api coreV1Api = null;
   private static CustomObjectsApi customObjectsApi = null;
   private static RbacAuthorizationV1Api rbacAuthApi = null;
+  private static DeleteOptions deleteOptions = null;
 
   // Extended GenericKubernetesApi clients
   private static GenericKubernetesApi<V1ConfigMap, V1ConfigMapList> configMapClient = null;
@@ -85,6 +87,8 @@ public class Kubernetes implements LoggedTest {
   private static GenericKubernetesApi<V1Secret, V1SecretList> secretClient = null;
   private static GenericKubernetesApi<V1Service, V1ServiceList> serviceClient = null;
   private static GenericKubernetesApi<V1ServiceAccount, V1ServiceAccountList> serviceAccountClient = null;
+  private static GenericKubernetesApi genericClient = null;
+
 
   static {
     try {
@@ -233,6 +237,10 @@ public class Kubernetes implements LoggedTest {
             "serviceaccounts", // the resource plural
             apiClient //the api client
         );
+
+    deleteOptions = new DeleteOptions();
+    deleteOptions.setGracePeriodSeconds(0L);
+    deleteOptions.setPropagationPolicy("Foreground");
   }
 
   // ------------------------  deployments -----------------------------------
@@ -255,6 +263,17 @@ public class Kubernetes implements LoggedTest {
       return null;
     }
   }
+
+  public static boolean deleteDeployments(String namespace) {
+    KubernetesApiResponse<V1Deployment> delete = deploymentClient.delete(namespace, deleteOptions);
+    if (delete.isSuccess()) {
+      return true;
+    } else {
+      logger.warning("Failed to delete deployments, status code {0}", delete.getHttpStatusCode());
+      return false;
+    }
+  }
+
 
   // --------------------------- pods -----------------------------------------
   /**
@@ -482,7 +501,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteNamespace(String name) {
 
-    KubernetesApiResponse<V1Namespace> response = namespaceClient.delete(name);
+    KubernetesApiResponse<V1Namespace> response = namespaceClient.delete(name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete namespace: "
@@ -565,7 +584,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteDomainCustomResource(String domainUID, String namespace) {
 
-    KubernetesApiResponse<Domain> response = crdClient.delete(namespace, domainUID);
+    KubernetesApiResponse<Domain> response = crdClient.delete(namespace, domainUID, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning(
@@ -866,7 +885,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteConfigMap(String name, String namespace) {
 
-    KubernetesApiResponse<V1ConfigMap> response = configMapClient.delete(namespace, name);
+    KubernetesApiResponse<V1ConfigMap> response = configMapClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete config map '" + name + "' from namespace: "
@@ -935,7 +954,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteSecret(String name, String namespace) {
 
-    KubernetesApiResponse<V1Secret> response = secretClient.delete(namespace, name);
+    KubernetesApiResponse<V1Secret> response = secretClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete secret '" + name + "' from namespace: "
@@ -1048,7 +1067,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deletePv(String name) {
 
-    KubernetesApiResponse<V1PersistentVolume> response = pvClient.delete(name);
+    KubernetesApiResponse<V1PersistentVolume> response = pvClient.delete(name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete persistent volume '" + name + "' "
@@ -1074,7 +1093,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deletePvc(String name, String namespace) {
 
-    KubernetesApiResponse<V1PersistentVolumeClaim> response = pvcClient.delete(namespace, name);
+    KubernetesApiResponse<V1PersistentVolumeClaim> response = pvcClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning(
@@ -1217,7 +1236,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteServiceAccount(String name, String namespace) {
 
-    KubernetesApiResponse<V1ServiceAccount> response = serviceAccountClient.delete(namespace, name);
+    KubernetesApiResponse<V1ServiceAccount> response = serviceAccountClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete Service Account '" + name + "' from namespace: "
@@ -1302,7 +1321,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteService(String name, String namespace) {
 
-    KubernetesApiResponse<V1Service> response = serviceClient.delete(namespace, name);
+    KubernetesApiResponse<V1Service> response = serviceClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete Service '" + name + "' from namespace: "
@@ -1383,7 +1402,7 @@ public class Kubernetes implements LoggedTest {
    * @return true if successful, false otherwise
    */
   public static boolean deleteClusterRoleBinding(String name) {
-    KubernetesApiResponse<V1ClusterRoleBinding> response = roleBindingClient.delete(name);
+    KubernetesApiResponse<V1ClusterRoleBinding> response = roleBindingClient.delete(name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning(
@@ -1402,4 +1421,15 @@ public class Kubernetes implements LoggedTest {
   }
 
   //------------------------
+
+  public boolean delete(String namespace, String name) {
+    genericClient = new GenericKubernetesApi(null, null, "", "v1", "", apiClient);
+    KubernetesApiResponse delete = genericClient.delete(namespace, name, deleteOptions);
+    if (delete.isSuccess()) {
+      return true;
+    } else {
+      logger.warning("Failed to delete {0} in namespace {1}", name, namespace);
+      return false;
+    }
+  }
 }

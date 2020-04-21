@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.kubernetes.client.openapi.ApiException;
+import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.utils.LoggingUtil;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -338,6 +339,51 @@ public class IntegrationTestWatcher implements
       }
     } catch (IOException | ApiException ex) {
       logger.warning(ex.getMessage());
+    }
+  }
+
+  private void cleanup(String namespace) throws ApiException {
+    logger.info("Collecting logs in namespace : {0}", namespace);
+    List<String> artifacts = new ArrayList();
+    // get service accounts
+    for (var item: Kubernetes.listServiceAccounts(namespace).getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get namespaces
+    for (var item: Kubernetes.listNamespacesAsObjects().getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get pvc
+    for (var item: Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get pv based on the weblogic.domainUID in pvc
+    for (var item: Kubernetes.listPersistentVolumes().getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get secrets
+    for (var item: Kubernetes.listSecrets(namespace).getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get configmaps
+    for (var item: Kubernetes.listConfigMaps(namespace).getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get jobs
+    for (var item: Kubernetes.listJobs(namespace).getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get deployments
+    for (var item: Kubernetes.listDeployments(namespace).getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get replicasets
+    for (var item: Kubernetes.listReplicaSets(namespace).getItems()) {
+      artifacts.add(item.getMetadata().getName());
+    }
+    // get all Domain objects in given namespace
+    for (var item: Kubernetes.listDomains(namespace).getItems()) {
+      artifacts.add(item.getMetadata().getName());
     }
   }
 
