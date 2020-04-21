@@ -342,7 +342,7 @@ public class IntegrationTestWatcher implements
     }
   }
 
-  private void cleanup(String namespace) throws ApiException {
+  public static void cleanup(String namespace) throws ApiException {
     logger.info("Collecting logs in namespace : {0}", namespace);
     List<String> artifacts = new ArrayList();
     // get service accounts
@@ -384,6 +384,10 @@ public class IntegrationTestWatcher implements
     // get all Domain objects in given namespace
     for (var item: Kubernetes.listDomains(namespace).getItems()) {
       artifacts.add(item.getMetadata().getName());
+    }
+
+    for (String artifact : artifacts) {
+      Kubernetes.delete(namespace, artifact);
     }
   }
 

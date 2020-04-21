@@ -1422,10 +1422,12 @@ public class Kubernetes implements LoggedTest {
 
   //------------------------
 
-  public boolean delete(String namespace, String name) {
+  public static boolean delete(String namespace, String name) {
+    logger.info("Deleting {0} in namespace {1}", name, namespace);
     genericClient = new GenericKubernetesApi(null, null, "", "v1", "", apiClient);
     KubernetesApiResponse delete = genericClient.delete(namespace, name, deleteOptions);
     if (delete.isSuccess()) {
+      logger.info("Successfully deleted {0} in namespace {1}", name, namespace);
       return true;
     } else {
       logger.warning("Failed to delete {0} in namespace {1}", name, namespace);
