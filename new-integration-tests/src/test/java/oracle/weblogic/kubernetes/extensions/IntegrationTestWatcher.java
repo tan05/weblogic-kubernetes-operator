@@ -10,6 +10,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import io.kubernetes.client.openapi.ApiException;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
@@ -57,7 +59,7 @@ public class IntegrationTestWatcher implements
 
   private String className;
   private String methodName;
-  private List namespaces = null;
+  private List<String> namespaces = null;
   private static final String START_TIME = "start time";
 
   /**
@@ -297,6 +299,14 @@ public class IntegrationTestWatcher implements
   @Override
   public void afterAll(ExtensionContext context) {
     printHeader(String.format("Ending Test Suite %s", className), "+");
+    logger.info("Running cleanup task");
+    for (String namespace : namespaces) {
+      try {
+        cleanup(namespace);
+      } catch (ApiException ex) {
+        Logger.getLogger(IntegrationTestWatcher.class.getName()).log(Level.SEVERE, null, ex);
+      }
+    }
   }
 
 
