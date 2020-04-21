@@ -3,48 +3,19 @@
 
 package oracle.weblogic.kubernetes;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.extensions.IntegrationTestWatcher;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(IntegrationTestWatcher.class)
 public class ItATest1 implements LoggedTest {
-
-  @BeforeAll
-  public void beforeAll(@Namespaces(5) List namespaces) {
-    logger.info(namespaces.toString());
-    logger.info("BeforeAll");
-  }
-
-  @AfterAll
-  public void afterAll() {
-    logger.info("AfterAll");
-
-  }
-
-  @BeforeEach
-  public void beforeEach() {
-    logger.info("BeforeEach");
-  }
-
-  @AfterEach
-  public void afterEach() {
-    logger.info("AfterEach");
-  }
-
+  
   @Test
-  public void test1(List namespaces) {
-    logger.info(namespaces.toString());
+  public void test1() {
   }
 
   private static final String LOGS_DIR = System.getProperty("user.dirvalue",

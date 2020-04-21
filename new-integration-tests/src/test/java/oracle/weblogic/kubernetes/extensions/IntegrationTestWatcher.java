@@ -300,7 +300,8 @@ public class IntegrationTestWatcher implements
   public void afterAll(ExtensionContext context) {
     printHeader(String.format("Ending Test Suite %s", className), "+");
     logger.info("Running cleanup task");
-    for (String namespace : namespaces) {
+    String[] ns = {"itoperator-opns-1", "itoperator-domainns-1"};
+    for (String namespace : ns) {
       try {
         cleanup(namespace);
       } catch (ApiException ex) {
@@ -354,51 +355,55 @@ public class IntegrationTestWatcher implements
 
   public static void cleanup(String namespace) throws ApiException {
     logger.info("Collecting logs in namespace : {0}", namespace);
-    List<String> artifacts = new ArrayList();
-    // get service accounts
-    for (var item: Kubernetes.listServiceAccounts(namespace).getItems()) {
-      artifacts.add(item.getMetadata().getName());
-    }
-    // get namespaces
-    for (var item: Kubernetes.listNamespacesAsObjects().getItems()) {
-      artifacts.add(item.getMetadata().getName());
-    }
-    // get pvc
-    for (var item: Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-      artifacts.add(item.getMetadata().getName());
-    }
-    // get pv based on the weblogic.domainUID in pvc
-    for (var item: Kubernetes.listPersistentVolumes().getItems()) {
-      artifacts.add(item.getMetadata().getName());
-    }
-    // get secrets
-    for (var item: Kubernetes.listSecrets(namespace).getItems()) {
-      artifacts.add(item.getMetadata().getName());
-    }
-    // get configmaps
-    for (var item: Kubernetes.listConfigMaps(namespace).getItems()) {
-      artifacts.add(item.getMetadata().getName());
-    }
-    // get jobs
-    for (var item: Kubernetes.listJobs(namespace).getItems()) {
-      artifacts.add(item.getMetadata().getName());
-    }
-    // get deployments
-    for (var item: Kubernetes.listDeployments(namespace).getItems()) {
-      artifacts.add(item.getMetadata().getName());
+
+    // get all Domain objects in given namespace
+    for (var item: Kubernetes.listDomains(namespace).getItems()) {
+      Kubernetes.deleteDomainCustomResource(
+          item.getMetadata().getLabels().get("weblogic.domainUID"),
+          namespace
+      );
     }
     // get replicasets
     for (var item: Kubernetes.listReplicaSets(namespace).getItems()) {
-      artifacts.add(item.getMetadata().getName());
-    }
-    // get all Domain objects in given namespace
-    for (var item: Kubernetes.listDomains(namespace).getItems()) {
-      artifacts.add(item.getMetadata().getName());
+      Kubernetes.deleteReplicaSets(namespace, item.getMetadata().getName());
     }
 
-    for (String artifact : artifacts) {
-      Kubernetes.delete(namespace, artifact);
+    // get deployments
+    for (var item: Kubernetes.listDeployments(namespace).getItems()) {
+      Kubernetes.deleteDeployments(namespace, item.getMetadata().getName());
     }
+
+    // get jobs
+    for (var item: Kubernetes.listJobs(namespace).getItems()) {
+      Kubernetes.deleteJob(namespace, item.getMetadata().getName());
+    }
+
+    // get configmaps
+    for (var item: Kubernetes.listConfigMaps(namespace).getItems()) {
+      Kubernetes.deleteConfigMap(item.getMetadata().getName(), namespace);
+    }
+
+    // get secrets
+    for (var item: Kubernetes.listSecrets(namespace).getItems()) {
+      Kubernetes.deleteSecret(item.getMetadata().getName(), namespace);
+    }
+
+    // get pvc
+    for (var item: Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+      Kubernetes.deletePvc(item.getMetadata().getName(), namespace);
+    }
+
+    // get pv based on the weblogic.domainUID in pvc
+    for (var item: Kubernetes.listPersistentVolumes().getItems()) {
+      Kubernetes.deletePv(item.getMetadata().getName());
+    }
+
+    // get service accounts
+    for (var item: Kubernetes.listServiceAccounts(namespace).getItems()) {
+      Kubernetes.deleteServiceAccount(item.getMetadata().getName(), namespace);
+    }
+    // get namespaces
+    Kubernetes.deleteNamespace(namespace);
   }
 
   /**
