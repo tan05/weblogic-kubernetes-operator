@@ -1381,7 +1381,7 @@ public class Kubernetes implements LoggedTest {
           PRETTY,
           null,
           0,
-          Boolean.FALSE,
+          null,
           "Foreground",
           null
       );
@@ -1414,22 +1414,14 @@ public class Kubernetes implements LoggedTest {
           null,
           null,
           null, // maximum number of responses to return for a list call
-          RESOURCE_VERSION, // shows changes that occur after that particular version of a resource
+          null, // shows changes that occur after that particular version of a resource
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           Boolean.FALSE // Watch for changes to the described resources
       );
-      KubernetesApiResponse<V1JobList> list = jobClient.list(namespace);
-      if (list.isSuccess()) {
-        //return list.getObject();
-      } else {
-        logger.warning("Failed to list jobs, status code {0}", list.getHttpStatusCode());
-        logger.warning(dump(list.getStatus()));
-        return null;
-      }
       return listNamespacedJob;
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      return null;
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      return new V1JobList();
     }
   }
 
@@ -1451,17 +1443,18 @@ public class Kubernetes implements LoggedTest {
           PRETTY,
           null,
           0,
-          Boolean.FALSE,
+          null,
           "Foreground",
           null
       );
-      if (deleteNamespacedReplicaSet.getStatus().equals("Suucess")) {
+      if (deleteNamespacedReplicaSet.getStatus().equals("Success")) {
         logger.info("Suucessfully deleted the replica set {0} in namespace {1}", name, namespace);
         status = true;
       } else {
         logger.warning("Failed to delete the replica set {0} in namespace {1}", name, namespace);
       }
     } catch (ApiException apex) {
+      logger.warning(dump(apex.getResponseBody()));
       logger.warning(apex.getResponseBody());
     }
     return status;
