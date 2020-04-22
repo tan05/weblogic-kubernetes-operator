@@ -15,19 +15,29 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
 import static org.awaitility.Awaitility.with;
 
+/**
+ * The CleanupUtil class is used for cleaning up all the Kubernetes artifacts left behind by the integration tests.
+ *
+ */
 public class CleanupUtil {
 
   private static ConditionFactory withStandardRetryPolicy = null;
 
+  /**
+   * Cleanup all artifacts in the Kubernetes cluster. Waits for the deletion to be completed until up to 3 minutes.
+   *
+   * @param namespaces list of namespaces
+   */
   public static void cleanup(List<String> namespaces) {
 
     // Delete all the artifacts in the list of namespaces
     deleteArtifacts(namespaces);
 
-    // wait for the artifacts to be deleted
+    // wait for the artifacts to be deleted waiting for a maximum of 3 minutes
     withStandardRetryPolicy = with().pollDelay(2, SECONDS)
         .and().with().pollInterval(10, SECONDS)
         .atMost(3, MINUTES).await();
+
     namespaces.stream().map((namespace) -> {
       logger.info("Check for artifacts in namespace {0}", namespace);
       return namespace;
@@ -43,11 +53,17 @@ public class CleanupUtil {
     });
   }
 
+  /**
+   * Checks if the artifacts in given namespace still exists.
+   *
+   * @param namespace name of the namespace
+   * @return true if none of the artifacts exists, false otherwise
+   */
   public static Callable<Boolean> artifactsDoesntExist(String namespace) {
     return () -> {
       boolean doesntExist = true;
 
-      // Check if domain CRD exists
+      // Check if domain exists
       try {
         if (!Kubernetes.listDomains(namespace).getItems().isEmpty()) {
           logger.info("Domain still exists");
@@ -69,7 +85,7 @@ public class CleanupUtil {
         logger.warning("Failed to list replica sets");
       }
 
-      // check if the job exist
+      // check if the jobs exist
       try {
         if (!Kubernetes.listJobs(namespace).getItems().isEmpty()) {
           logger.info("Jobs still exists");
@@ -80,7 +96,7 @@ public class CleanupUtil {
         logger.warning("Failed to list jobs");
       }
 
-      // check if configmaps exist
+      // check if the configmaps exist
       try {
         if (!Kubernetes.listConfigMaps(namespace).getItems().isEmpty()) {
           logger.info("Config Maps still exists");
@@ -91,7 +107,7 @@ public class CleanupUtil {
         logger.warning("Failed to list config maps");
       }
 
-      // check if secrets exist
+      // check if the secrets exist
       try {
         if (!Kubernetes.listSecrets(namespace).getItems().isEmpty()) {
           logger.info("Secrets still exists");
@@ -102,7 +118,7 @@ public class CleanupUtil {
         logger.warning("Failed to list secrets");
       }
 
-      // check if pvs exist
+      // check if persistent volume exist
       try {
         for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
           String label = Optional.ofNullable(item)
@@ -163,18 +179,23 @@ public class CleanupUtil {
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
-        logger.warning("Failed to list namespace");
+        logger.warning("Failed to list namespaces");
       }
 
       return doesntExist;
     };
   }
 
+  /**
+   * Deletes the artifacts in the Kubernetes cluster in the namespaces list.
+   *
+   * @param namespaces list of namespaces
+   */
   public static void deleteArtifacts(List<String> namespaces) {
     for (String namespace : namespaces) {
       logger.info("Cleaning up artifacts in namespace {0}", namespace);
 
-      // get all Domain objects in given namespace
+      // Delete all Domain objects in given namespace
       try {
         for (var item : Kubernetes.listDomains(namespace).getItems()) {
           Kubernetes.deleteDomainCustomResource(
@@ -187,7 +208,7 @@ public class CleanupUtil {
         logger.warning("Failed to cleanup domains");
       }
 
-      // get replicasets
+      // Delete replicasets
       try {
         for (var item : Kubernetes.listReplicaSets(namespace).getItems()) {
           Kubernetes.deleteReplicaSets(namespace, item.getMetadata().getName());
@@ -197,7 +218,7 @@ public class CleanupUtil {
         logger.warning("Failed to cleanup replica sets");
       }
 
-      // get jobs
+      // Delete jobs
       try {
         for (var item : Kubernetes.listJobs(namespace).getItems()) {
           Kubernetes.deleteJob(namespace, item.getMetadata().getName());
@@ -207,7 +228,7 @@ public class CleanupUtil {
         logger.warning("Failed to cleanup jobs");
       }
 
-      // get configmaps
+      // Delete configmaps
       try {
         for (var item : Kubernetes.listConfigMaps(namespace).getItems()) {
           Kubernetes.deleteConfigMap(item.getMetadata().getName(), namespace);
@@ -217,7 +238,7 @@ public class CleanupUtil {
         logger.warning("Failed to cleanup config maps");
       }
 
-      // get secrets
+      // Delete secrets
       try {
         for (var item : Kubernetes.listSecrets(namespace).getItems()) {
           Kubernetes.deleteSecret(item.getMetadata().getName(), namespace);
@@ -227,7 +248,7 @@ public class CleanupUtil {
         logger.warning("Failed to cleanup secrets");
       }
 
-      // get pv based on the weblogic.domainUID in pvc
+      // Delete pv
       try {
         for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
           String label = Optional.ofNullable(item)
@@ -247,7 +268,7 @@ public class CleanupUtil {
         logger.warning("Failed to cleanup persistent volumes");
       }
 
-      // get deployments
+      // Delete deployments
       try {
         for (var item : Kubernetes.listDeployments(namespace).getItems()) {
           Kubernetes.deleteDeployments(namespace, item.getMetadata().getName());
@@ -257,7 +278,7 @@ public class CleanupUtil {
         logger.warning("Failed to cleanup deployments");
       }
 
-      // get pvc
+      // Delete pvc
       try {
         for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
           Kubernetes.deletePvc(item.getMetadata().getName(), namespace);
@@ -267,7 +288,7 @@ public class CleanupUtil {
         logger.warning("Failed to cleanup persistent volume claims");
       }
 
-      // get service accounts
+      // Delete service accounts
       try {
         for (var item : Kubernetes.listServiceAccounts(namespace).getItems()) {
           Kubernetes.deleteServiceAccount(item.getMetadata().getName(), namespace);
@@ -276,7 +297,7 @@ public class CleanupUtil {
         logger.warning(ex.getMessage());
         logger.warning("Failed to cleanup service accounts");
       }
-      // get namespaces
+      // Delete namespace
       try {
         Kubernetes.deleteNamespace(namespace);
       } catch (Exception ex) {
