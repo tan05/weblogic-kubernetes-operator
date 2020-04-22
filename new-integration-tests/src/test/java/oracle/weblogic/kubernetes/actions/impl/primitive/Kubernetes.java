@@ -259,10 +259,11 @@ public class Kubernetes implements LoggedTest {
    * @param namespace Namespace in which to list the deployments
    * @return V1DeploymentList of deployments in the Kubernetes cluster
    */
-  public static V1DeploymentList listDeployments(String namespace) {
+  public static V1DeploymentList listDeployments(String namespace) throws ApiException {
+    V1DeploymentList listNamespacedDeployment;
     AppsV1Api apiInstance = new AppsV1Api(apiClient);
     try {
-      V1DeploymentList listNamespacedDeployment = apiInstance.listNamespacedDeployment(namespace,
+      listNamespacedDeployment = apiInstance.listNamespacedDeployment(namespace,
           PRETTY,
           ALLOW_WATCH_BOOKMARKS,
           null,
@@ -273,11 +274,12 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           Boolean.FALSE // Watch for changes to the described resources
       );
-      return listNamespacedDeployment;
+      logger.info(dump(listNamespacedDeployment));
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
-      return null;
+      throw apex;
     }
+    return listNamespacedDeployment;
   }
 
   public static boolean deleteDeployments(String namespace, String name) {
@@ -290,7 +292,7 @@ public class Kubernetes implements LoggedTest {
           null,
           0,
           Boolean.FALSE,
-          "Foreground",
+          "Background",
           null
       );
       if (deleteNamespacedDeployment.getStatus().equals("Suucess")) {
@@ -516,6 +518,7 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
+      logger.info(dump(namespaceList));
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -769,6 +772,7 @@ public class Kubernetes implements LoggedTest {
     KubernetesApiResponse<DomainList> response = null;
     try {
       response = crdClient.list(namespace);
+      logger.info(dump(response.getObject()));
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
       throw ex;
@@ -899,6 +903,7 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
+      logger.info(dump(configMapList));
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -1009,6 +1014,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1SecretList listSecrets(String namespace) {
     KubernetesApiResponse<V1SecretList> list = secretClient.list(namespace);
+    logger.info(dump(list.getObject()));
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1148,6 +1154,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1PersistentVolumeList listPersistentVolumes() {
     KubernetesApiResponse<V1PersistentVolumeList> list = pvClient.list();
+    logger.info(dump(list.getObject()));
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1177,6 +1184,7 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
+      logger.info(dump(listPersistentVolume));
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -1191,6 +1199,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1PersistentVolumeClaimList listPersistentVolumeClaims(String namespace) {
     KubernetesApiResponse<V1PersistentVolumeClaimList> list = pvcClient.list(namespace);
+    logger.info(dump(list.getObject()));
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1206,6 +1215,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1PersistentVolumeClaimList listPersistentVolumeClaims() {
     KubernetesApiResponse<V1PersistentVolumeClaimList> list = pvcClient.list();
+    logger.info(dump(list.getObject()));
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1292,6 +1302,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1ServiceAccountList listServiceAccounts(String namespace) {
     KubernetesApiResponse<V1ServiceAccountList> list = serviceAccountClient.list(namespace);
+    logger.info(dump(list.getObject()));
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1403,10 +1414,11 @@ public class Kubernetes implements LoggedTest {
    * @param namespace in which to list the jobs
    * @return V1JobList of jobs from Kubernetes cluster
    */
-  public static V1JobList listJobs(String namespace) {
+  public static V1JobList listJobs(String namespace) throws ApiException {
+    V1JobList listNamespacedJob;
     try {
       BatchV1Api apiInstance = new BatchV1Api(apiClient);
-      V1JobList listNamespacedJob = apiInstance.listNamespacedJob(
+      listNamespacedJob = apiInstance.listNamespacedJob(
           namespace,
           PRETTY,
           ALLOW_WATCH_BOOKMARKS,
@@ -1418,11 +1430,12 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           Boolean.FALSE // Watch for changes to the described resources
       );
-      return listNamespacedJob;
+      logger.info(dump(listNamespacedJob));
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
-      return new V1JobList();
+      throw apex;
     }
+    return listNamespacedJob;
   }
 
   // --------------------------- resplica sets ---------------------------
