@@ -15,7 +15,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.utils.LoggingUtil;
@@ -372,61 +371,101 @@ public class IntegrationTestWatcher implements
     }
 
     // get replicasets
-    for (var item: Kubernetes.listReplicaSets(namespace).getItems()) {
-      Kubernetes.deleteReplicaSets(namespace, item.getMetadata().getName());
+    try {
+      for (var item : Kubernetes.listReplicaSets(namespace).getItems()) {
+        Kubernetes.deleteReplicaSets(namespace, item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup replica sets");
     }
 
     // get deployments
-    for (var item: Kubernetes.listDeployments(namespace).getItems()) {
-      Kubernetes.deleteDeployments(namespace, item.getMetadata().getName());
+    try {
+      for (var item : Kubernetes.listDeployments(namespace).getItems()) {
+        Kubernetes.deleteDeployments(namespace, item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup deployments");
     }
 
     // get jobs
-    for (var item: Kubernetes.listJobs(namespace).getItems()) {
-      Kubernetes.deleteJob(namespace, item.getMetadata().getName());
+    try {
+      for (var item : Kubernetes.listJobs(namespace).getItems()) {
+        Kubernetes.deleteJob(namespace, item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup jobs");
     }
 
     // get configmaps
-    for (var item: Kubernetes.listConfigMaps(namespace).getItems()) {
-      Kubernetes.deleteConfigMap(item.getMetadata().getName(), namespace);
+    try {
+      for (var item : Kubernetes.listConfigMaps(namespace).getItems()) {
+        Kubernetes.deleteConfigMap(item.getMetadata().getName(), namespace);
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup config maps");
     }
 
     // get secrets
-    for (var item: Kubernetes.listSecrets(namespace).getItems()) {
-      Kubernetes.deleteSecret(item.getMetadata().getName(), namespace);
+    try {
+      for (var item : Kubernetes.listSecrets(namespace).getItems()) {
+        Kubernetes.deleteSecret(item.getMetadata().getName(), namespace);
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup secrets");
+    }
+
+    // get pv based on the weblogic.domainUID in pvc
+    try {
+      for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+        String label = Optional.ofNullable(item)
+            .map(pvc -> pvc.getMetadata())
+            .map(metadata -> metadata.getLabels())
+            .map(labels -> labels.get("weblogic.domainUID")).get();
+        if (label != null) {
+          for (var listPersistentVolume : Kubernetes
+              .listPersistentVolumes(String.format("weblogic.domainUID in (%s)", label))
+              .getItems()) {
+            Kubernetes.deletePv(listPersistentVolume.getMetadata().getName());
+          }
+        }
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup persistent volumes");
     }
 
     // get pvc
-    for (var item: Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-      Kubernetes.deletePvc(item.getMetadata().getName(), namespace);
-    }
-
-    // get pv based on the weblogic.domainUID in pvc
-    for (var item: Kubernetes.listPersistentVolumes().getItems()) {
-      Kubernetes.deletePv(item.getMetadata().getName());
-    }
-
-    // get pv based on the weblogic.domainUID in pvc
-    for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-      String label = Optional.ofNullable(item)
-          .map(pvc -> pvc.getMetadata())
-          .map(metadata -> metadata.getLabels())
-          .map(labels -> labels.get("weblogic.domainUID")).get();
-      if (label != null) {
-        V1PersistentVolumeList listPersistentVolumes = Kubernetes.listPersistentVolumes(
-            String.format("weblogic.domainUID in (%s)", label));
-        for (var listPersistentVolume : listPersistentVolumes.getItems()) {
-          Kubernetes.deletePv(listPersistentVolume.getMetadata().getName());
-        }
+    try {
+      for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+        Kubernetes.deletePvc(item.getMetadata().getName(), namespace);
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup persistent volume claims");
     }
 
     // get service accounts
-    for (var item: Kubernetes.listServiceAccounts(namespace).getItems()) {
-      Kubernetes.deleteServiceAccount(item.getMetadata().getName(), namespace);
+    try {
+      for (var item : Kubernetes.listServiceAccounts(namespace).getItems()) {
+        Kubernetes.deleteServiceAccount(item.getMetadata().getName(), namespace);
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup service accounts");
     }
     // get namespaces
-    Kubernetes.deleteNamespace(namespace);
+    try {
+      Kubernetes.deleteNamespace(namespace);
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup namespace");
+    }
   }
 
   /**

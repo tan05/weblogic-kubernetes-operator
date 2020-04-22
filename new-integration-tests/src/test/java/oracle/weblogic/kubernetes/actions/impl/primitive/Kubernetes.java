@@ -286,13 +286,14 @@ public class Kubernetes implements LoggedTest {
     AppsV1Api apiInstance = new AppsV1Api(apiClient);
     boolean status = false;
     try {
-      V1Status deleteNamespacedDeployment = apiInstance.deleteNamespacedDeployment(name,
+      V1Status deleteNamespacedDeployment = apiInstance.deleteNamespacedDeployment(
+          name,
           namespace,
           PRETTY,
           null,
           0,
-          Boolean.FALSE,
-          "Background",
+          null,
+          "Foreground",
           null
       );
       if (deleteNamespacedDeployment.getStatus().equals("Suucess")) {
