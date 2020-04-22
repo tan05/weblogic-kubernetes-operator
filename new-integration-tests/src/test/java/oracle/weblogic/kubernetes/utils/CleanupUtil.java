@@ -6,7 +6,6 @@ package oracle.weblogic.kubernetes.utils;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-import io.kubernetes.client.openapi.ApiException;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
@@ -140,7 +139,7 @@ public class CleanupUtil {
     };
   }
 
-  public static void cleanup(String namespace) throws ApiException {
+  public static void cleanup(String namespace) {
     logger.info("Collecting logs in namespace : {0}", namespace);
 
     // get all Domain objects in given namespace

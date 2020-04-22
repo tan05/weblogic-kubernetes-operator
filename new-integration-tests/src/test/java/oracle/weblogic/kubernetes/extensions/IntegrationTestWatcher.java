@@ -10,8 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import io.kubernetes.client.openapi.ApiException;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
@@ -63,7 +61,7 @@ public class IntegrationTestWatcher implements
 
   private String className;
   private String methodName;
-  private List<String> namespaces = null;
+  private List namespaces = null;
   private static final String START_TIME = "start time";
   private static ConditionFactory withStandardRetryPolicy = null;
 
@@ -307,11 +305,7 @@ public class IntegrationTestWatcher implements
     logger.info("Running cleanup task");
     String[] namespaces = {"itoperator-opns-1", "itoperator-domainns-1"};
     for (String namespace : namespaces) {
-      try {
-        CleanupUtil.cleanup(namespace);
-      } catch (ApiException ex) {
-        Logger.getLogger(IntegrationTestWatcher.class.getName()).log(Level.SEVERE, null, ex);
-      }
+      CleanupUtil.cleanup(namespace);
     }
     // wait for the artifacts to be deleted
     withStandardRetryPolicy = with().pollDelay(2, SECONDS)
