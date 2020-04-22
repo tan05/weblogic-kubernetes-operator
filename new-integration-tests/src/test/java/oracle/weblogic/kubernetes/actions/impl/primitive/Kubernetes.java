@@ -1318,6 +1318,12 @@ public class Kubernetes implements LoggedTest {
     return true;
   }
 
+  /**
+   * List services in a given namespace.
+   *
+   * @param namespace name of the namespace
+   * @return V1ServiceList list of V1Service objects
+   */
   public static V1ServiceList listServices(String namespace) {
 
     KubernetesApiResponse<V1ServiceList> list = serviceClient.list(namespace);
@@ -1518,6 +1524,13 @@ public class Kubernetes implements LoggedTest {
     return true;
   }
 
+  /**
+   * List role bindings in a given name space.
+   *
+   * @param namespace name of the namespace
+   * @return V1RoleBindingList list of V1RoleBinding objects
+   * @throws ApiException when listing fails
+   */
   public static V1RoleBindingList listNamespacedRoleBinding(String namespace) throws ApiException {
     V1RoleBindingList roleBindings;
     try {
@@ -1540,7 +1553,12 @@ public class Kubernetes implements LoggedTest {
     return roleBindings;
   }
 
-
+  /**
+   * List cluster role bindings.
+   *
+   * @return V1RoleBindingList list of V1RoleBinding objects
+   * @throws ApiException when listing fails
+   */
   public static V1RoleBindingList listClusterRoleBindings() throws ApiException {
     V1RoleBindingList roleBindings;
 
@@ -1564,6 +1582,13 @@ public class Kubernetes implements LoggedTest {
     return roleBindings;
   }
 
+  /**
+   * List roles in a given namespace.
+   *
+   * @param namespace name of the namespace
+   * @return V1RoleList list of V1Role object
+   * @throws ApiException when listing fails
+   */
   public static V1RoleList listNamespacedRole(String namespace) throws ApiException {
     V1RoleList roles;
 
@@ -1588,6 +1613,12 @@ public class Kubernetes implements LoggedTest {
     return roles;
   }
 
+  /**
+   * List roles in the Kubernetes cluster.
+   *
+   * @return V1ClusterRoleList list of V1ClusterRole objects
+   * @throws ApiException when listing fails
+   */
   public static V1ClusterRoleList listClusterRoles() throws ApiException {
     V1ClusterRoleList roles;
 
@@ -1611,6 +1642,13 @@ public class Kubernetes implements LoggedTest {
     return roles;
   }
 
+  /**
+   * List Ingress extensions in the given namespace.
+   *
+   * @param namespace name of the namespace
+   * @return ExtensionsV1beta1IngressList list of ExtensionsV1beta1Ingress objects
+   * @throws ApiException when listing fails
+   */
   public static ExtensionsV1beta1IngressList listIngressExtensions(String namespace) throws ApiException {
     ExtensionsV1beta1IngressList ingressList;
     try {
@@ -1636,6 +1674,14 @@ public class Kubernetes implements LoggedTest {
     }
   }
 
+  /**
+   * Get Ingress extension in the given namespace by the name.
+   *
+   * @param namespace name of the namespace
+   * @param name name of the Ingress extension
+   * @return ExtensionsV1beta1Ingress
+   * @throws ApiException when get fails
+   */
   public static ExtensionsV1beta1Ingress getIngressExtension(String namespace, String name) throws ApiException {
     ExtensionsV1beta1Ingress ingress = null;
     try {
@@ -1653,6 +1699,13 @@ public class Kubernetes implements LoggedTest {
     return ingress;
   }
 
+  /**
+   * List Ingress in given namespace.
+   *
+   * @param namespace name of the namespace
+   * @return NetworkingV1beta1IngressList list of NetworkingV1beta1Ingress objects
+   * @throws ApiException when list fails
+   */
   public static NetworkingV1beta1IngressList listIngress(String namespace) throws ApiException {
     NetworkingV1beta1IngressList ingressList;
     try {
@@ -1678,6 +1731,14 @@ public class Kubernetes implements LoggedTest {
     }
   }
 
+  /**
+   * Get Ingress object.
+   *
+   * @param namespace name of the namespace
+   * @param name of the Ingress
+   * @return NetworkingV1beta1Ingress Ingress object
+   * @throws ApiException when get fails
+   */
   public static NetworkingV1beta1Ingress getIngress(String namespace, String name) throws ApiException {
     NetworkingV1beta1Ingress ingress = null;
     try {

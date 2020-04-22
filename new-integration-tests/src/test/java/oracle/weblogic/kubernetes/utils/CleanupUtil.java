@@ -3,6 +3,10 @@
 
 package oracle.weblogic.kubernetes.utils;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+
 import io.kubernetes.client.openapi.models.ExtensionsV1beta1Ingress;
 import io.kubernetes.client.openapi.models.NetworkingV1beta1Ingress;
 import io.kubernetes.client.openapi.models.V1ClusterRole;
@@ -16,11 +20,7 @@ import io.kubernetes.client.openapi.models.V1Role;
 import io.kubernetes.client.openapi.models.V1RoleBinding;
 import io.kubernetes.client.openapi.models.V1Secret;
 import io.kubernetes.client.openapi.models.V1ServiceAccount;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Callable;
 import oracle.weblogic.domain.Domain;
-
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import org.awaitility.core.ConditionFactory;
 
