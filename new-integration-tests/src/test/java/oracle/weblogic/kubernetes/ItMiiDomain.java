@@ -119,8 +119,7 @@ class ItMiiDomain implements LoggedTest {
 
   /**
    * Install Operator.
-   * @param namespaces list of namespaces created by the IntegrationTestWatcher by the
-   JUnit engine parameter resolution mechanism
+   * @param namespaces injected by JUnit parameter resolution extension
    */
   @BeforeAll
   public static void initAll(@Namespaces(2) List<String> namespaces) {
