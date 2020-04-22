@@ -92,8 +92,6 @@ public class Kubernetes implements LoggedTest {
   private static GenericKubernetesApi<V1Secret, V1SecretList> secretClient = null;
   private static GenericKubernetesApi<V1Service, V1ServiceList> serviceClient = null;
   private static GenericKubernetesApi<V1ServiceAccount, V1ServiceAccountList> serviceAccountClient = null;
-  private static GenericKubernetesApi genericClient = null;
-
 
   static {
     try {
@@ -242,7 +240,6 @@ public class Kubernetes implements LoggedTest {
             "serviceaccounts", // the resource plural
             apiClient //the api client
         );
-
     deleteOptions = new DeleteOptions();
     deleteOptions.setGracePeriodSeconds(0L);
     deleteOptions.setPropagationPolicy("Foreground");
@@ -255,15 +252,18 @@ public class Kubernetes implements LoggedTest {
   }
 
   /**
-   * List all deployments in a given namespace.
+   * List deployments in a given namespace.
    * @param namespace Namespace in which to list the deployments
    * @return V1DeploymentList of deployments in the Kubernetes cluster
+   * @throws ApiException when listing fails
    */
   public static V1DeploymentList listDeployments(String namespace) throws ApiException {
-    V1DeploymentList listNamespacedDeployment;
-    AppsV1Api apiInstance = new AppsV1Api(apiClient);
+
+    V1DeploymentList deployments;
+
     try {
-      listNamespacedDeployment = apiInstance.listNamespacedDeployment(namespace,
+      AppsV1Api apiInstance = new AppsV1Api(apiClient);
+      deployments = apiInstance.listNamespacedDeployment(namespace,
           PRETTY,
           ALLOW_WATCH_BOOKMARKS,
           null,
@@ -274,37 +274,48 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           Boolean.FALSE // Watch for changes to the described resources
       );
-      logger.info(dump(listNamespacedDeployment));
+      logger.info(dump(deployments));
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
     }
-    return listNamespacedDeployment;
+    return deployments;
   }
 
-  public static boolean deleteDeployments(String namespace, String name) {
-    AppsV1Api apiInstance = new AppsV1Api(apiClient);
+  /**
+   * Delete the deployment artifact.
+   * @param namespace name of the namespace
+   * @param name name of the deployment
+   * @return true if deletion is successful otherwise false
+   * @throws ApiException when delete fails
+   */
+  public static boolean deleteDeployments(String namespace, String name) throws ApiException {
+
     boolean status = false;
+
     try {
+      AppsV1Api apiInstance = new AppsV1Api(apiClient);
       V1Status deleteNamespacedDeployment = apiInstance.deleteNamespacedDeployment(
-          name,
-          namespace,
-          PRETTY,
-          null,
-          0,
-          null,
-          "Foreground",
-          null
+          name, // deployment object name
+          namespace, // namespace in which the deployment exists
+          PRETTY, // pretty print
+          null, // dryRun
+          0, // grace period in seconds, 0 means immediate delete
+          null, // orphan dependents
+          "Foreground", // propagation policy
+          null // delete options
       );
-      if (deleteNamespacedDeployment.getStatus().equals("Suucess")) {
-        logger.info("Suucessfully deleted the replica set {0} in namespace {1}", name, namespace);
+      if (deleteNamespacedDeployment.getStatus().equals("Success")) {
+        logger.info("Suucessfully deleted the deployment {0} in namespace {1}", name, namespace);
         status = true;
       } else {
-        logger.warning("Failed to delete the replica set {0} in namespace {1}", name, namespace);
+        logger.warning("Failed to delete the deployment {0} in namespace {1}", name, namespace);
       }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
+      throw apex;
     }
+
     return status;
   }
 
@@ -779,63 +790,6 @@ public class Kubernetes implements LoggedTest {
       throw ex;
     }
     return response != null ? response.getObject() : new DomainList();
-  }
-
-
-  /**
-   * Get Domain Custom Resource objects in all namespaces.
-   *
-   * @return Object Domain Custom Resources object
-   */
-  public static Object getDomainObjects() {
-    Object domainObjects = null;
-    try {
-      domainObjects = customObjectsApi.listClusterCustomObject(
-          DOMAIN_GROUP, // custom resource's group name
-          DOMAIN_VERSION, // custom resource's version
-          DOMAIN_PLURAL, // custom resource's plural name
-          PRETTY, // pretty print
-          null, //conitnue fetching
-          null, // field selector
-          null, // label selector
-          null, // limit the number of objects to get
-          null, // resource version
-          TIMEOUT_SECONDS, // timeout
-          ALLOW_WATCH_BOOKMARKS // allow watch book marks
-      );
-    } catch (ApiException ex) {
-      logger.severe(ex.getResponseBody());
-    }
-    return domainObjects;
-  }
-
-  /**
-   * Get Domain Custom Resource objects in given namespace.
-   *
-   * @param namespace the namespace in which to list custom objects
-   * @return Object Domain Custom Resources object
-   */
-  public static Object getDomainObjects(String namespace) {
-    Object domainObjects = null;
-    try {
-      domainObjects = customObjectsApi.listNamespacedCustomObject(
-          DOMAIN_GROUP, // custom resource's group name
-          DOMAIN_VERSION, // custom resource's version
-          namespace, // namespace
-          DOMAIN_PLURAL, // custom resource's plural name
-          PRETTY, // pretty print
-          null, //conitnue fetching
-          null, // field selector
-          null, // label selector
-          null, // limit the number of objects to get
-          null, // resource version
-          TIMEOUT_SECONDS, // timeout
-          ALLOW_WATCH_BOOKMARKS // allow watch book marks
-      );
-    } catch (ApiException ex) {
-      logger.severe(ex.getResponseBody());
-    }
-    return domainObjects;
   }
 
   // --------------------------- config map ---------------------------
@@ -1383,49 +1337,60 @@ public class Kubernetes implements LoggedTest {
 
   // --------------------------- jobs ---------------------------
 
-  public static boolean deleteJob(String namespace, String name) {
-    BatchV1Api apiInstance = new BatchV1Api(apiClient);
+  /**
+   * Delete job.
+   *
+   * @param namespace name of the namespace
+   * @param name name of the job
+   * @return true if delete is successful otherwise false
+   * @throws ApiException when delete job fails
+   */
+  public static boolean deleteJob(String namespace, String name) throws ApiException {
     boolean status = false;
     try {
+      BatchV1Api apiInstance = new BatchV1Api(apiClient);
       V1Status deleteNamespacedJob = apiInstance.deleteNamespacedJob(
-          name,
-          namespace,
-          PRETTY,
-          null,
-          0,
-          null,
-          "Foreground",
-          null
+          name, // name of the job
+          namespace, // namespace
+          PRETTY, // pretty print
+          null, // dry run
+          0, // grace period
+          null, // orphan dependents
+          "Foreground", // propagation policy
+          null // delete option
       );
-      if (deleteNamespacedJob.getStatus().equals("Suucess")) {
-        logger.info("Suucessfully deleted the replica set {0} in namespace {1}", name, namespace);
+      logger.info(dump(deleteNamespacedJob));
+      if (deleteNamespacedJob.getStatus().equals("Success")) {
+        logger.info("Sucessfully deleted the job {0} in namespace {1}", name, namespace);
         status = true;
       } else {
-        logger.warning("Failed to delete the replica set {0} in namespace {1}", name, namespace);
+        logger.warning("Failed to delete the job {0} in namespace {1}", name, namespace);
       }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
+      throw apex;
     }
     return status;
   }
 
   /**
-   * Get a list of all jobs in the given namespace.
+   * List jobs in the given namespace.
    *
    * @param namespace in which to list the jobs
    * @return V1JobList of jobs from Kubernetes cluster
+   * @throws ApiException when list fails
    */
   public static V1JobList listJobs(String namespace) throws ApiException {
     V1JobList listNamespacedJob;
     try {
       BatchV1Api apiInstance = new BatchV1Api(apiClient);
       listNamespacedJob = apiInstance.listNamespacedJob(
-          namespace,
-          PRETTY,
-          ALLOW_WATCH_BOOKMARKS,
-          null,
-          null,
-          null,
+          namespace, // namespace
+          PRETTY, // pretty print
+          ALLOW_WATCH_BOOKMARKS, // watch bookmarks
+          null, // continue if there is a limit set
+          null, // field selector
+          null, // label selector
           null, // maximum number of responses to return for a list call
           null, // shows changes that occur after that particular version of a resource
           TIMEOUT_SECONDS, // Timeout for the list/watch call
@@ -1442,51 +1407,55 @@ public class Kubernetes implements LoggedTest {
   // --------------------------- resplica sets ---------------------------
 
   /**
-   * Get a list of all replica sets in the given namespace.
+   * Delete replica set.
    *
-   * @param namespace in which to list the replica sets
-   * @return V1ReplicaSetList of replica sets
+   * @param namespace name of the namespace
+   * @param name name of the replica set
+   * @return true if delete is successful otherwise false
+   * @throws ApiException if delete fails
    */
-  public static boolean deleteReplicaSets(String namespace, String name) {
-    logger.info("Deleting replica set {0} in namespace {1}", name, namespace);
-    AppsV1Api apiInstance = new AppsV1Api(apiClient);
+  public static boolean deleteReplicaSet(String namespace, String name) throws ApiException {
     boolean status = false;
     try {
+      AppsV1Api apiInstance = new AppsV1Api(apiClient);
       V1Status deleteNamespacedReplicaSet = apiInstance.deleteNamespacedReplicaSet(
-          name,
-          namespace,
-          PRETTY,
-          null,
-          0,
-          null,
-          "Background",
-          null
+          name, // name of the job
+          namespace, // namespace
+          PRETTY, // pretty print
+          null, // dry run
+          0, // grace period
+          null, // orphan dependents
+          "Background", // propagation policy
+          null // delete option
       );
+      status = true;
       logger.info("Replica set deletion status {0}", deleteNamespacedReplicaSet.getStatus());
     } catch (ApiException apex) {
       logger.info("Failed to delete replica set {0}");
       logger.warning(apex.getResponseBody());
+      throw apex;
     }
     return status;
   }
 
   /**
-   * Get a list of all replica sets in the given namespace.
+   * List replica sets in the given namespace.
    *
    * @param namespace in which to list the replica sets
    * @return V1ReplicaSetList of replica sets
+   * @throws ApiException when list fails
    */
-  public static V1ReplicaSetList listReplicaSets(String namespace) {
+  public static V1ReplicaSetList listReplicaSets(String namespace) throws ApiException {
     logger.info("Listing replica sets in namespace {0}", namespace);
-    AppsV1Api apiInstance = new AppsV1Api(apiClient);
     try {
+      AppsV1Api apiInstance = new AppsV1Api(apiClient);
       V1ReplicaSetList listNamespacedReplicaSet = apiInstance.listNamespacedReplicaSet(
-          namespace,
-          PRETTY,
-          ALLOW_WATCH_BOOKMARKS,
-          null,
-          null,
-          null,
+          namespace, // namespace in which to list
+          PRETTY, // pretty print
+          ALLOW_WATCH_BOOKMARKS, // allow watch book marks
+          null, // continue if more records exists
+          null, // field selector
+          null, // label selector
           null, // maximum number of responses to return for a list call
           RESOURCE_VERSION, // shows changes that occur after that particular version of a resource
           TIMEOUT_SECONDS, // Timeout for the list/watch call
@@ -1496,7 +1465,7 @@ public class Kubernetes implements LoggedTest {
       return listNamespacedReplicaSet;
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
-      return null;
+      throw apex;
     }
   }
 
@@ -1549,17 +1518,4 @@ public class Kubernetes implements LoggedTest {
   }
 
   //------------------------
-
-  public static boolean delete(String namespace, String name) {
-    logger.info("Deleting {0} in namespace {1}", name, namespace);
-    genericClient = new GenericKubernetesApi(null, null, "", "v1", "", apiClient);
-    KubernetesApiResponse delete = genericClient.delete(namespace, name, deleteOptions);
-    if (delete.isSuccess()) {
-      logger.info("Successfully deleted {0} in namespace {1}", name, namespace);
-      return true;
-    } else {
-      logger.warning("Failed to delete {0} in namespace {1}", name, namespace);
-      return false;
-    }
-  }
 }

@@ -211,7 +211,7 @@ public class CleanupUtil {
       // Delete replicasets
       try {
         for (var item : Kubernetes.listReplicaSets(namespace).getItems()) {
-          Kubernetes.deleteReplicaSets(namespace, item.getMetadata().getName());
+          Kubernetes.deleteReplicaSet(namespace, item.getMetadata().getName());
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
