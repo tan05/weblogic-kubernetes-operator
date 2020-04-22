@@ -13,14 +13,24 @@ import com.google.gson.JsonElement;
 import io.kubernetes.client.custom.V1Patch;
 import io.kubernetes.client.extended.generic.GenericKubernetesApi;
 import io.kubernetes.client.extended.generic.KubernetesApiResponse;
+import io.kubernetes.client.extended.generic.options.DeleteOptions;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.AppsV1Api;
+import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.CustomObjectsApi;
+import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api;
+import io.kubernetes.client.openapi.apis.NetworkingV1beta1Api;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
+import io.kubernetes.client.openapi.models.ExtensionsV1beta1Ingress;
+import io.kubernetes.client.openapi.models.ExtensionsV1beta1IngressList;
+import io.kubernetes.client.openapi.models.NetworkingV1beta1Ingress;
+import io.kubernetes.client.openapi.models.NetworkingV1beta1IngressList;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBinding;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBindingList;
+import io.kubernetes.client.openapi.models.V1ClusterRoleList;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1ConfigMapList;
 import io.kubernetes.client.openapi.models.V1Deployment;
@@ -40,16 +50,21 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.openapi.models.V1ReplicaSet;
 import io.kubernetes.client.openapi.models.V1ReplicaSetList;
+import io.kubernetes.client.openapi.models.V1RoleBindingList;
+import io.kubernetes.client.openapi.models.V1RoleList;
 import io.kubernetes.client.openapi.models.V1Secret;
 import io.kubernetes.client.openapi.models.V1SecretList;
 import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServiceAccount;
 import io.kubernetes.client.openapi.models.V1ServiceAccountList;
 import io.kubernetes.client.openapi.models.V1ServiceList;
+import io.kubernetes.client.openapi.models.V1Status;
 import io.kubernetes.client.util.ClientBuilder;
 import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainList;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
+
+import static io.kubernetes.client.util.Yaml.dump;
 
 // TODO ryan - in here we want to implement all of the kubernetes
 // primitives that we need, using the API, not spawning a process
@@ -64,12 +79,16 @@ public class Kubernetes implements LoggedTest {
   private static String DOMAIN_GROUP = "weblogic.oracle";
   private static String DOMAIN_VERSION = "v7";
   private static String DOMAIN_PLURAL = "domains";
+  private static String FOREGROUND = "Foreground";
+  private static String BACKGROUND = "Background";
+  private static int GRACE_PERIOD = 0;
 
   // Core Kubernetes API clients
   private static ApiClient apiClient = null;
   private static CoreV1Api coreV1Api = null;
   private static CustomObjectsApi customObjectsApi = null;
   private static RbacAuthorizationV1Api rbacAuthApi = null;
+  private static DeleteOptions deleteOptions = null;
 
   // Extended GenericKubernetesApi clients
   private static GenericKubernetesApi<V1ConfigMap, V1ConfigMapList> configMapClient = null;
@@ -233,6 +252,9 @@ public class Kubernetes implements LoggedTest {
             "serviceaccounts", // the resource plural
             apiClient //the api client
         );
+    deleteOptions = new DeleteOptions();
+    deleteOptions.setGracePeriodSeconds(0L);
+    deleteOptions.setPropagationPolicy(FOREGROUND);
   }
 
   // ------------------------  deployments -----------------------------------
@@ -242,18 +264,69 @@ public class Kubernetes implements LoggedTest {
   }
 
   /**
-   * List all deployments in a given namespace.
+   * List deployments in a given namespace.
+   *
    * @param namespace Namespace in which to list the deployments
    * @return V1DeploymentList of deployments in the Kubernetes cluster
+   * @throws ApiException when listing fails
    */
-  public static V1DeploymentList listDeployments(String namespace) {
-    KubernetesApiResponse<V1DeploymentList> list = deploymentClient.list(namespace);
-    if (list.isSuccess()) {
-      return list.getObject();
-    } else {
-      logger.warning("Failed to list deployments, status code {0}", list.getHttpStatusCode());
-      return null;
+  public static V1DeploymentList listDeployments(String namespace) throws ApiException {
+    V1DeploymentList deployments;
+    try {
+      AppsV1Api apiInstance = new AppsV1Api(apiClient);
+      deployments = apiInstance.listNamespacedDeployment(namespace,
+          PRETTY, // true/false pretty print the output
+          ALLOW_WATCH_BOOKMARKS, // allowWatchBookmarks requests watch events with type "BOOKMARK".
+          null, // set when retrieving more results from the server
+          null, // restrict list based on labels
+          null, // restrict list based on fields
+          null, // maximum number of responses to return for a list call
+          RESOURCE_VERSION, // shows changes that occur after that particular version of a resource
+          TIMEOUT_SECONDS, // Timeout for the list/watch call
+          Boolean.FALSE // Watch for changes to the described resources
+      );
+      logger.info(dump(deployments));
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
     }
+    return deployments;
+  }
+
+  /**
+   * Delete the deployment artifact.
+   *
+   * @param namespace Namespace in which to delete the deployment
+   * @param name name of the deployment
+   * @return true if deletion is successful otherwise false
+   * @throws ApiException when delete fails
+   */
+  public static boolean deleteDeployment(String namespace, String name) throws ApiException {
+    boolean status = false;
+    try {
+      AppsV1Api apiInstance = new AppsV1Api(apiClient);
+      V1Status deleteNamespacedDeployment = apiInstance.deleteNamespacedDeployment(
+          name, // deployment object name
+          namespace, // namespace in which the deployment exists
+          PRETTY, // pretty print
+          null, // dryRun, modifications to persist or no
+          GRACE_PERIOD, // grace period in seconds, 0 means immediate deletion of the artifact
+          null, // orphan dependents
+          FOREGROUND, // propagation policy , if Foreground cascade the deletion of all dependents
+          null // delete options
+      );
+      if (deleteNamespacedDeployment.getStatus().equals("Success")) {
+        logger.info("Suucessfully deleted the deployment {0} in namespace {1}", name, namespace);
+        status = true;
+      } else {
+        logger.warning("Failed to delete the deployment {0} in namespace {1}", name, namespace);
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+
+    return status;
   }
 
   // --------------------------- pods -----------------------------------------
@@ -482,7 +555,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteNamespace(String name) {
 
-    KubernetesApiResponse<V1Namespace> response = namespaceClient.delete(name);
+    KubernetesApiResponse<V1Namespace> response = namespaceClient.delete(name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete namespace: "
@@ -565,7 +638,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteDomainCustomResource(String domainUid, String namespace) {
 
-    KubernetesApiResponse<Domain> response = crdClient.delete(namespace, domainUid);
+    KubernetesApiResponse<Domain> response = crdClient.delete(namespace, domainUid, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning(
@@ -807,7 +880,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteConfigMap(String name, String namespace) {
 
-    KubernetesApiResponse<V1ConfigMap> response = configMapClient.delete(namespace, name);
+    KubernetesApiResponse<V1ConfigMap> response = configMapClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete config map '" + name + "' from namespace: "
@@ -989,7 +1062,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deletePv(String name) {
 
-    KubernetesApiResponse<V1PersistentVolume> response = pvClient.delete(name);
+    KubernetesApiResponse<V1PersistentVolume> response = pvClient.delete(name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete persistent volume '" + name + "' "
@@ -1015,7 +1088,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deletePvc(String name, String namespace) {
 
-    KubernetesApiResponse<V1PersistentVolumeClaim> response = pvcClient.delete(namespace, name);
+    KubernetesApiResponse<V1PersistentVolumeClaim> response = pvcClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning(
@@ -1143,7 +1216,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteServiceAccount(String name, String namespace) {
 
-    KubernetesApiResponse<V1ServiceAccount> response = serviceAccountClient.delete(namespace, name);
+    KubernetesApiResponse<V1ServiceAccount> response = serviceAccountClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete Service Account '" + name + "' from namespace: "
@@ -1228,7 +1301,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteService(String name, String namespace) {
 
-    KubernetesApiResponse<V1Service> response = serviceClient.delete(namespace, name);
+    KubernetesApiResponse<V1Service> response = serviceClient.delete(namespace, name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete Service '" + name + "' from namespace: "
@@ -1245,37 +1318,151 @@ public class Kubernetes implements LoggedTest {
     return true;
   }
 
-  // --------------------------- jobs ---------------------------
-  /**
-   * Get a list of all jobs in the given namespace.
-   *
-   * @param namespace in which to list the jobs
-   * @return V1JobList of jobs from Kubernetes cluster
-   */
-  public static V1JobList listJobs(String namespace) {
-    KubernetesApiResponse<V1JobList> list = jobClient.list(namespace);
+  public static V1ServiceList listServices(String namespace) {
+
+    KubernetesApiResponse<V1ServiceList> list = serviceClient.list(namespace);
+
     if (list.isSuccess()) {
       return list.getObject();
     } else {
-      logger.warning("Failed to list jobs, status code {0}", list.getHttpStatusCode());
-      return null;
+      logger.warning("Failed to list services, status code {0}", list.getHttpStatusCode());
+      return new V1ServiceList();
     }
   }
 
-  // --------------------------- replica sets ---------------------------
+  // --------------------------- jobs ---------------------------
+
   /**
-   * Get a list of all replica sets in the given namespace.
+   * Delete job.
+   *
+   * @param namespace name of the namespace
+   * @param name name of the job
+   * @return true if delete is successful otherwise false
+   * @throws ApiException when delete job fails
+   */
+  public static boolean deleteJob(String namespace, String name) throws ApiException {
+    boolean status = false;
+    try {
+      BatchV1Api apiInstance = new BatchV1Api(apiClient);
+      V1Status deleteNamespacedJob = apiInstance.deleteNamespacedJob(
+          name, // name of the job
+          namespace, // name of the namespace
+          PRETTY, // pretty print output
+          null, // dry run
+          GRACE_PERIOD, // grace period
+          null, // orphan dependents
+          FOREGROUND, // propagation policy
+          null // delete option
+      );
+      logger.info(dump(deleteNamespacedJob));
+      if (deleteNamespacedJob.getStatus().equals("Success")) {
+        logger.info("Sucessfully deleted the job {0} in namespace {1}", name, namespace);
+        status = true;
+      } else {
+        logger.warning("Failed to delete the job {0} in namespace {1}", name, namespace);
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return status;
+  }
+
+  /**
+   * List jobs in the given namespace.
+   *
+   * @param namespace in which to list the jobs
+   * @return V1JobList of jobs from Kubernetes cluster
+   * @throws ApiException when list fails
+   */
+  public static V1JobList listJobs(String namespace) throws ApiException {
+    V1JobList listNamespacedJob;
+    try {
+      BatchV1Api apiInstance = new BatchV1Api(apiClient);
+      listNamespacedJob = apiInstance.listNamespacedJob(
+          namespace, // namespace
+          PRETTY, // pretty print
+          ALLOW_WATCH_BOOKMARKS, // watch bookmarks
+          null, // continue if there is a limit set
+          null, // field selector
+          null, // label selector
+          null, // maximum number of responses to return for a list call
+          null, // shows changes that occur after that particular version of a resource
+          TIMEOUT_SECONDS, // Timeout for the list/watch call
+          Boolean.FALSE // Watch for changes to the described resources
+      );
+      logger.info(dump(listNamespacedJob));
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return listNamespacedJob;
+  }
+
+
+
+  // --------------------------- replica sets ---------------------------
+
+  /**
+   * Delete replica set.
+   *
+   * @param namespace name of the namespace
+   * @param name name of the replica set
+   * @return true if delete is successful otherwise false
+   * @throws ApiException if delete fails
+   */
+  public static boolean deleteReplicaSet(String namespace, String name) throws ApiException {
+    boolean status = false;
+    try {
+      AppsV1Api apiInstance = new AppsV1Api(apiClient);
+      V1Status deleteNamespacedReplicaSet = apiInstance.deleteNamespacedReplicaSet(
+          name, // name of the job
+          namespace, // namespace
+          PRETTY, // pretty print
+          null, // dry run
+          GRACE_PERIOD, // grace period
+          null, // orphan dependents
+          BACKGROUND, // propagation policy
+          null // delete option
+      );
+      status = true;
+      logger.info("Replica set deletion status {0}", deleteNamespacedReplicaSet.getStatus());
+    } catch (ApiException apex) {
+      logger.info("Failed to delete replica set {0}");
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return status;
+  }
+
+  /**
+   * List replica sets in the given namespace.
    *
    * @param namespace in which to list the replica sets
    * @return V1ReplicaSetList of replica sets
+   * @throws ApiException when list fails
    */
-  public static V1ReplicaSetList listReplicaSets(String namespace) {
-    KubernetesApiResponse<V1ReplicaSetList> list = rsClient.list(namespace);
-    if (list.isSuccess()) {
-      return list.getObject();
-    } else {
-      logger.warning("Failed to list replica sets, status code {0}", list.getHttpStatusCode());
-      return null;
+  public static V1ReplicaSetList listReplicaSets(String namespace) throws ApiException {
+    logger.info("Listing replica sets in namespace {0}", namespace);
+    try {
+      AppsV1Api apiInstance = new AppsV1Api(apiClient);
+      V1ReplicaSetList listNamespacedReplicaSet = apiInstance.listNamespacedReplicaSet(
+          namespace, // namespace in which to list
+          PRETTY, // pretty print
+          ALLOW_WATCH_BOOKMARKS, // allow watch book marks
+          null, // continue if more records exists
+          null, // field selector
+          null, // label selector
+          null, // maximum number of responses to return for a list call
+          RESOURCE_VERSION, // shows changes that occur after that particular version of a resource
+          TIMEOUT_SECONDS, // Timeout for the list/watch call
+          Boolean.FALSE // Watch for changes to the described resources
+      );
+      logger.info(dump(listNamespacedReplicaSet));
+      return listNamespacedReplicaSet;
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
     }
   }
 
@@ -1284,20 +1471,24 @@ public class Kubernetes implements LoggedTest {
   /**
    * Create a Cluster Role Binding.
    *
-   * @param clusterRoleBinding V1ClusterRoleBinding object containing role binding configuration
-   *     data
+   * @param clusterRoleBinding V1ClusterRoleBinding object containing role binding configuration data
    * @return true if successful
    * @throws ApiException if Kubernetes client API call fails
    */
   public static boolean createClusterRoleBinding(V1ClusterRoleBinding clusterRoleBinding)
       throws ApiException {
-
-    V1ClusterRoleBinding crb = rbacAuthApi.createClusterRoleBinding(
-        clusterRoleBinding, // role binding configuration data
-        PRETTY, // pretty print output
-        null, // indicates that modifications should not be persisted
-        null // fieldManager is a name associated with the actor
-    );
+    V1ClusterRoleBinding crb;
+    try {
+      crb = rbacAuthApi.createClusterRoleBinding(
+          clusterRoleBinding, // role binding configuration data
+          PRETTY, // pretty print output
+          null, // indicates that modifications should not be persisted
+          null // fieldManager is a name associated with the actor
+      );
+    } catch (ApiException apex) {
+      logger.severe(apex.getResponseBody());
+      throw apex;
+    }
 
     return true;
   }
@@ -1309,7 +1500,7 @@ public class Kubernetes implements LoggedTest {
    * @return true if successful, false otherwise
    */
   public static boolean deleteClusterRoleBinding(String name) {
-    KubernetesApiResponse<V1ClusterRoleBinding> response = roleBindingClient.delete(name);
+    KubernetesApiResponse<V1ClusterRoleBinding> response = roleBindingClient.delete(name, deleteOptions);
 
     if (!response.isSuccess()) {
       logger.warning(
@@ -1321,10 +1512,187 @@ public class Kubernetes implements LoggedTest {
     if (response.getObject() != null) {
       logger.info(
           "Received after-deletion status of the requested object, will be deleting "
-              + "Cluster Role Binding " + name + " in background!");
+          + "Cluster Role Binding " + name + " in background!");
     }
 
     return true;
+  }
+
+  public static V1RoleBindingList listNamespacedRoleBinding(String namespace) throws ApiException {
+    V1RoleBindingList roleBindings;
+    try {
+      roleBindings = rbacAuthApi.listNamespacedRoleBinding(
+          namespace,
+          PRETTY,
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
+          null,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return roleBindings;
+  }
+
+
+  public static V1RoleBindingList listClusterRoleBindings() throws ApiException {
+    V1RoleBindingList roleBindings;
+
+    try {
+      roleBindings = rbacAuthApi.listRoleBindingForAllNamespaces(
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
+          null,
+          PRETTY,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+
+    return roleBindings;
+  }
+
+  public static V1RoleList listNamespacedRole(String namespace) throws ApiException {
+    V1RoleList roles;
+
+    try {
+      roles = rbacAuthApi.listNamespacedRole(
+          namespace,
+          PRETTY,
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
+          null,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+
+    return roles;
+  }
+
+  public static V1ClusterRoleList listClusterRoles() throws ApiException {
+    V1ClusterRoleList roles;
+
+    try {
+      roles = rbacAuthApi.listClusterRole(
+          PRETTY,
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
+          null,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+
+    return roles;
+  }
+
+  public static ExtensionsV1beta1IngressList listIngressExtensions(String namespace) throws ApiException {
+    ExtensionsV1beta1IngressList ingressList;
+    try {
+      ExtensionsV1beta1Api apiInstance = new ExtensionsV1beta1Api(apiClient);
+      ingressList = apiInstance.listNamespacedIngress(
+          namespace, // namespace
+          PRETTY, // String | If 'true', then the output is pretty printed.
+          ALLOW_WATCH_BOOKMARKS, // Boolean | allowWatchBookmarks requests watch events with type \"BOOKMARK\".
+          null, // String | The continue option should be set when retrieving more results from the server.
+          null, // String | A selector to restrict the list of returned objects by their fields.
+          null, // String | A selector to restrict the list of returned objects by their labels.
+          null, // Integer | limit is a maximum number of responses to return for a list call.
+          RESOURCE_VERSION, // String | When specified with a watch call, shows changes that occur
+          // after that particular version of a resource.
+          TIMEOUT_SECONDS, // Integer | Timeout for the list/watch call.
+          ALLOW_WATCH_BOOKMARKS // Boolean | Watch for changes to the described resources and return
+      // them as a stream of add, update, and remove notifications. Specify resourceVersion.
+      );
+      return ingressList;
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+  }
+
+  public static ExtensionsV1beta1Ingress getIngressExtension(String namespace, String name) throws ApiException {
+    ExtensionsV1beta1Ingress ingress = null;
+    try {
+      ExtensionsV1beta1IngressList list = listIngressExtensions(namespace);
+      List<ExtensionsV1beta1Ingress> items = list.getItems();
+      for (ExtensionsV1beta1Ingress item : items) {
+        if (name.equals(item.getMetadata().getName())) {
+          ingress = item;
+        }
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return ingress;
+  }
+
+  public static NetworkingV1beta1IngressList listIngress(String namespace) throws ApiException {
+    NetworkingV1beta1IngressList ingressList;
+    try {
+      NetworkingV1beta1Api apiInstance = new NetworkingV1beta1Api(apiClient);
+      ingressList = apiInstance.listNamespacedIngress(
+          namespace, // namespace
+          PRETTY, // String | If 'true', then the output is pretty printed.
+          ALLOW_WATCH_BOOKMARKS, // Boolean | allowWatchBookmarks requests watch events with type \"BOOKMARK\".
+          null, // String | The continue option should be set when retrieving more results from the server.
+          null, // String | A selector to restrict the list of returned objects by their fields.
+          null, // String | A selector to restrict the list of returned objects by their labels.
+          null, // Integer | limit is a maximum number of responses to return for a list call.
+          RESOURCE_VERSION, // String | When specified with a watch call, shows changes that occur
+          // after that particular version of a resource.
+          TIMEOUT_SECONDS, // Integer | Timeout for the list/watch call.
+          ALLOW_WATCH_BOOKMARKS // Boolean | Watch for changes to the described resources and return
+      // them as a stream of add, update, and remove notifications. Specify resourceVersion.
+      );
+      return ingressList;
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+  }
+
+  public static NetworkingV1beta1Ingress getIngress(String namespace, String name) throws ApiException {
+    NetworkingV1beta1Ingress ingress = null;
+    try {
+      NetworkingV1beta1IngressList list = listIngress(namespace);
+      List<NetworkingV1beta1Ingress> items = list.getItems();
+      for (NetworkingV1beta1Ingress item : items) {
+        if (name.equals(item.getMetadata().getName())) {
+          ingress = item;
+        }
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return ingress;
   }
 
   //------------------------
