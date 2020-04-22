@@ -17,13 +17,13 @@ public class ImageBuilders implements BeforeAllCallback, ExtensionContext.Store.
   public void beforeAll(ExtensionContext context) {
     if (!started) {
       started = true;
-      logger.info("Building docker Images");
+      logger.info("Building docker Images before any integration test classes are run");
       context.getRoot().getStore(GLOBAL).put("BuildSetup", this);
     }
   }
 
   @Override
   public void close() {
-    logger.info("Done executing all tests");
+    logger.info("Cleanup images after all test suites are run");
   }
 }

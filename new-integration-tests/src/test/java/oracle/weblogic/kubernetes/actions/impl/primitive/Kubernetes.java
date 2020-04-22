@@ -24,6 +24,7 @@ import io.kubernetes.client.openapi.apis.CustomObjectsApi;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBinding;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBindingList;
+import io.kubernetes.client.openapi.models.V1ClusterRoleList;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1ConfigMapList;
 import io.kubernetes.client.openapi.models.V1Deployment;
@@ -43,6 +44,7 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.openapi.models.V1ReplicaSet;
 import io.kubernetes.client.openapi.models.V1ReplicaSetList;
+import io.kubernetes.client.openapi.models.V1RoleBindingList;
 import io.kubernetes.client.openapi.models.V1Secret;
 import io.kubernetes.client.openapi.models.V1SecretList;
 import io.kubernetes.client.openapi.models.V1Service;
@@ -1320,6 +1322,18 @@ public class Kubernetes implements LoggedTest {
     return true;
   }
 
+  public static V1ServiceList listServices(String namespace) {
+
+    KubernetesApiResponse<V1ServiceList> list = serviceClient.list(namespace);
+
+    if (list.isSuccess()) {
+      return list.getObject();
+    } else {
+      logger.warning("Failed to list services, status code {0}", list.getHttpStatusCode());
+      return new V1ServiceList();
+    }
+  }
+
   // --------------------------- jobs ---------------------------
 
   /**
@@ -1473,6 +1487,7 @@ public class Kubernetes implements LoggedTest {
         null, // indicates that modifications should not be persisted
         null // fieldManager is a name associated with the actor
     );
+    rbacAuthApi.listRoleBindingForAllNamespaces(ALLOW_WATCH_BOOKMARKS, PRETTY, PRETTY, PRETTY, GRACE_PERIOD, PRETTY, RESOURCE_VERSION, TIMEOUT_SECONDS, ALLOW_WATCH_BOOKMARKS);
 
     return true;
   }
@@ -1500,6 +1515,52 @@ public class Kubernetes implements LoggedTest {
     }
 
     return true;
+  }
+
+  public static V1RoleBindingList listClusterRoleBindings() throws ApiException {
+    V1RoleBindingList roleBindings;
+
+    try {
+      roleBindings = rbacAuthApi.listRoleBindingForAllNamespaces(
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
+          null,
+          PRETTY,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+
+    return roleBindings;
+  }
+
+  public static V1ClusterRoleList listClusterRoles() throws ApiException {
+    V1ClusterRoleList roles;
+
+    try {
+      roles = rbacAuthApi.listClusterRole(
+          PRETTY,
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
+          null,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+
+    return roles;
   }
 
   //------------------------
