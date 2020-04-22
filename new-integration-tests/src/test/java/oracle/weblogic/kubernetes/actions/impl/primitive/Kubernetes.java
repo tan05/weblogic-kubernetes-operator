@@ -70,6 +70,9 @@ public class Kubernetes implements LoggedTest {
   private static String DOMAIN_GROUP = "weblogic.oracle";
   private static String DOMAIN_VERSION = "v7";
   private static String DOMAIN_PLURAL = "domains";
+  private static String FOREGROUND = "Foreground";
+  private static String BACKGROUND = "Background";
+  private static int GRACE_PERIOD = 0;
 
   // Core Kubernetes API clients
   private static ApiClient apiClient = null;
@@ -258,17 +261,15 @@ public class Kubernetes implements LoggedTest {
    * @throws ApiException when listing fails
    */
   public static V1DeploymentList listDeployments(String namespace) throws ApiException {
-
     V1DeploymentList deployments;
-
     try {
       AppsV1Api apiInstance = new AppsV1Api(apiClient);
       deployments = apiInstance.listNamespacedDeployment(namespace,
-          PRETTY,
-          ALLOW_WATCH_BOOKMARKS,
-          null,
-          null,
-          null,
+          PRETTY, // true/false pretty print the output
+          ALLOW_WATCH_BOOKMARKS, // allowWatchBookmarks requests watch events with type "BOOKMARK".
+          null, // set when retrieving more results from the server
+          null, // restrict list based on labels
+          null, // restrict list based on fields
           null, // maximum number of responses to return for a list call
           RESOURCE_VERSION, // shows changes that occur after that particular version of a resource
           TIMEOUT_SECONDS, // Timeout for the list/watch call
@@ -284,25 +285,23 @@ public class Kubernetes implements LoggedTest {
 
   /**
    * Delete the deployment artifact.
-   * @param namespace name of the namespace
+   * @param namespace Namespace in which to delete the deployment
    * @param name name of the deployment
    * @return true if deletion is successful otherwise false
    * @throws ApiException when delete fails
    */
-  public static boolean deleteDeployments(String namespace, String name) throws ApiException {
-
+  public static boolean deleteDeployment(String namespace, String name) throws ApiException {
     boolean status = false;
-
     try {
       AppsV1Api apiInstance = new AppsV1Api(apiClient);
       V1Status deleteNamespacedDeployment = apiInstance.deleteNamespacedDeployment(
           name, // deployment object name
           namespace, // namespace in which the deployment exists
           PRETTY, // pretty print
-          null, // dryRun
-          0, // grace period in seconds, 0 means immediate delete
+          null, // dryRun, modifications to persist or no
+          GRACE_PERIOD, // grace period in seconds, 0 means immediate deletion of the artifact
           null, // orphan dependents
-          "Foreground", // propagation policy
+          FOREGROUND, // propagation policy , if Foreground cascade the deletion of all dependents
           null // delete options
       );
       if (deleteNamespacedDeployment.getStatus().equals("Success")) {
@@ -513,6 +512,7 @@ public class Kubernetes implements LoggedTest {
 
   /**
    * List namespaces in the Kubernetes cluster as V1NamespaceList.
+   *
    * @return V1NamespaceList of Namespace in the Kubernetes cluster
    * @throws ApiException if Kubernetes client API call fails
    */
@@ -964,7 +964,8 @@ public class Kubernetes implements LoggedTest {
 
   /**
    * List secrets in the Kubernetes cluster.
-   * @param namespace Namespace in which to query
+   *
+   * @param namespace name of the Namespace
    * @return V1SecretList of secrets in the Kubernetes cluster
    */
   public static V1SecretList listSecrets(String namespace) {
@@ -974,7 +975,7 @@ public class Kubernetes implements LoggedTest {
       return list.getObject();
     } else {
       logger.warning("Failed to list secrets, status code {0}", list.getHttpStatusCode());
-      return null;
+      return new V1SecretList();
     }
   }
 
@@ -1115,7 +1116,7 @@ public class Kubernetes implements LoggedTest {
     } else {
       logger.warning("Failed to list Persistent Volumes,"
           + " status code {0}", list.getHttpStatusCode());
-      return null;
+      return new V1PersistentVolumeList();
     }
   }
 
@@ -1160,22 +1161,6 @@ public class Kubernetes implements LoggedTest {
     } else {
       logger.warning("Failed to list Persistent Volumes claims,"
           + " status code {0}", list.getHttpStatusCode());
-      return null;
-    }
-  }
-
-  /**
-   * List all persistent volume claims in the Kubernetes cluster.
-   * @return V1PersistentVolumeClaimList of Persistent Volume Claims in Kubernetes cluster
-   */
-  public static V1PersistentVolumeClaimList listPersistentVolumeClaims() {
-    KubernetesApiResponse<V1PersistentVolumeClaimList> list = pvcClient.list();
-    logger.info(dump(list.getObject()));
-    if (list.isSuccess()) {
-      return list.getObject();
-    } else {
-      logger.warning("Failed to list Persistent Volumes claims,"
-          + "status code {0}", list.getHttpStatusCode());
       return null;
     }
   }
@@ -1262,7 +1247,7 @@ public class Kubernetes implements LoggedTest {
       return list.getObject();
     } else {
       logger.warning("Failed to list service accounts, status code {0}", list.getHttpStatusCode());
-      return null;
+      return new V1ServiceAccountList();
     }
   }
   // --------------------------- Services ---------------------------
@@ -1351,12 +1336,12 @@ public class Kubernetes implements LoggedTest {
       BatchV1Api apiInstance = new BatchV1Api(apiClient);
       V1Status deleteNamespacedJob = apiInstance.deleteNamespacedJob(
           name, // name of the job
-          namespace, // namespace
-          PRETTY, // pretty print
+          namespace, // name of the namespace
+          PRETTY, // pretty print output
           null, // dry run
-          0, // grace period
+          GRACE_PERIOD, // grace period
           null, // orphan dependents
-          "Foreground", // propagation policy
+          FOREGROUND, // propagation policy
           null // delete option
       );
       logger.info(dump(deleteNamespacedJob));
@@ -1423,9 +1408,9 @@ public class Kubernetes implements LoggedTest {
           namespace, // namespace
           PRETTY, // pretty print
           null, // dry run
-          0, // grace period
+          GRACE_PERIOD, // grace period
           null, // orphan dependents
-          "Background", // propagation policy
+          BACKGROUND, // propagation policy
           null // delete option
       );
       status = true;

@@ -271,7 +271,7 @@ public class CleanupUtil {
       // Delete deployments
       try {
         for (var item : Kubernetes.listDeployments(namespace).getItems()) {
-          Kubernetes.deleteDeployments(namespace, item.getMetadata().getName());
+          Kubernetes.deleteDeployment(namespace, item.getMetadata().getName());
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
