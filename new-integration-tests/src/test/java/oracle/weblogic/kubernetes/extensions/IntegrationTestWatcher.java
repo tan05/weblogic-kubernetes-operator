@@ -15,7 +15,6 @@ import io.kubernetes.client.openapi.ApiException;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.utils.CleanupUtil;
 import oracle.weblogic.kubernetes.utils.LoggingUtil;
-import org.awaitility.core.ConditionFactory;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
@@ -32,11 +31,8 @@ import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
 import org.junit.jupiter.api.extension.TestWatcher;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static oracle.weblogic.kubernetes.actions.TestActions.createUniqueNamespace;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
-import static org.awaitility.Awaitility.with;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
@@ -63,7 +59,6 @@ public class IntegrationTestWatcher implements
   private String methodName;
   private List namespaces = null;
   private static final String START_TIME = "start time";
-  private static ConditionFactory withStandardRetryPolicy = null;
 
   /**
    * Directory to store logs.
@@ -297,31 +292,14 @@ public class IntegrationTestWatcher implements
 
   /**
    * Prints log message to mark end of test suite.
+   * Cleans up all artifacts in the namespace used by the test.
    * @param context the current extension context
    */
   @Override
   public void afterAll(ExtensionContext context) {
     printHeader(String.format("Ending Test Suite %s", className), "+");
-    logger.info("Running cleanup task");
-    String[] namespaces = {"itoperator-opns-1", "itoperator-domainns-1"};
-    for (String namespace : namespaces) {
-      CleanupUtil.cleanup(namespace);
-    }
-    // wait for the artifacts to be deleted
-    withStandardRetryPolicy = with().pollDelay(2, SECONDS)
-        .and().with().pollInterval(10, SECONDS)
-        .atMost(3, MINUTES).await();
-    for (String namespace : namespaces) {
-      logger.info("Check for artifacts in namespace {0}", namespace);
-      withStandardRetryPolicy
-          .conditionEvaluationListener(
-              condition -> logger.info("Waiting for artifacts to be deleted in namespace {0}, "
-                  + "(elapsed time {1} , remaining time {2}",
-                  namespace,
-                  condition.getElapsedTimeInMS(),
-                  condition.getRemainingTimeInMS()))
-          .until(CleanupUtil.artifactsDoesntExist(namespace));
-    }
+    // Call cleanup task
+    CleanupUtil.cleanup(namespaces);
   }
 
   /**
