@@ -10,10 +10,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.utils.LoggingUtil;
@@ -357,12 +359,18 @@ public class IntegrationTestWatcher implements
     logger.info("Collecting logs in namespace : {0}", namespace);
 
     // get all Domain objects in given namespace
-    for (var item: Kubernetes.listDomains(namespace).getItems()) {
-      Kubernetes.deleteDomainCustomResource(
-          item.getMetadata().getLabels().get("weblogic.domainUID"),
-          namespace
-      );
+    try {
+      for (var item : Kubernetes.listDomains(namespace).getItems()) {
+        Kubernetes.deleteDomainCustomResource(
+            item.getMetadata().getLabels().get("weblogic.domainUID"),
+            namespace
+        );
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup domains");
     }
+
     // get replicasets
     for (var item: Kubernetes.listReplicaSets(namespace).getItems()) {
       Kubernetes.deleteReplicaSets(namespace, item.getMetadata().getName());
@@ -396,6 +404,21 @@ public class IntegrationTestWatcher implements
     // get pv based on the weblogic.domainUID in pvc
     for (var item: Kubernetes.listPersistentVolumes().getItems()) {
       Kubernetes.deletePv(item.getMetadata().getName());
+    }
+
+    // get pv based on the weblogic.domainUID in pvc
+    for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+      String label = Optional.ofNullable(item)
+          .map(pvc -> pvc.getMetadata())
+          .map(metadata -> metadata.getLabels())
+          .map(labels -> labels.get("weblogic.domainUID")).get();
+      if (label != null) {
+        V1PersistentVolumeList listPersistentVolumes = Kubernetes.listPersistentVolumes(
+            String.format("weblogic.domainUID in (%s)", label));
+        for (var listPersistentVolume : listPersistentVolumes.getItems()) {
+          Kubernetes.deletePv(listPersistentVolume.getMetadata().getName());
+        }
+      }
     }
 
     // get service accounts

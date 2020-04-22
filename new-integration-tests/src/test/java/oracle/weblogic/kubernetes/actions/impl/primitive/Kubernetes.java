@@ -1449,7 +1449,7 @@ public class Kubernetes implements LoggedTest {
           null
       );
       logger.info("Replica set deletion status {0}", deleteNamespacedReplicaSet.getStatus());
-    } catch(ApiException apex) {
+    } catch (ApiException apex) {
       logger.info("Failed to delete replica set {0}");
       logger.warning(apex.getResponseBody());
     }
