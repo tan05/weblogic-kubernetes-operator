@@ -11,11 +11,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.kubernetes.client.openapi.ApiException;
-import java.util.concurrent.Callable;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.utils.LoggingUtil;
@@ -314,15 +314,15 @@ public class IntegrationTestWatcher implements
     }
     // wait for the domain to exist
     for (String namespace : ns) {
-    logger.info("Check for artifacts in namespace {0}", namespace);
-    withStandardRetryPolicy
-        .conditionEvaluationListener(
-            condition -> logger.info("Waiting for artifacts to be deleted in namespace {0}, "
-                + "(elapsed time {1} , remaining time {2}",
-                namespace,
-                condition.getElapsedTimeInMS(),
-                condition.getRemainingTimeInMS()))
-        .until(artifactsDoesntExist(namespace));
+      logger.info("Check for artifacts in namespace {0}", namespace);
+      withStandardRetryPolicy
+          .conditionEvaluationListener(
+              condition -> logger.info("Waiting for artifacts to be deleted in namespace {0}, "
+                  + "(elapsed time {1} , remaining time {2}",
+                  namespace,
+                  condition.getElapsedTimeInMS(),
+                  condition.getRemainingTimeInMS()))
+          .until(artifactsDoesntExist(namespace));
     }
   }
 
