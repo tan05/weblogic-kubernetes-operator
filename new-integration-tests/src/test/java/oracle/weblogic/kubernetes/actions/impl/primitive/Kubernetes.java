@@ -21,7 +21,13 @@ import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.CustomObjectsApi;
+import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api;
+import io.kubernetes.client.openapi.apis.NetworkingV1beta1Api;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
+import io.kubernetes.client.openapi.models.ExtensionsV1beta1IngressList;
+import io.kubernetes.client.openapi.models.ExtensionsV1beta1Ingress;
+import io.kubernetes.client.openapi.models.NetworkingV1beta1Ingress;
+import io.kubernetes.client.openapi.models.NetworkingV1beta1IngressList;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBinding;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBindingList;
 import io.kubernetes.client.openapi.models.V1ClusterRoleList;
@@ -45,6 +51,7 @@ import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.openapi.models.V1ReplicaSet;
 import io.kubernetes.client.openapi.models.V1ReplicaSetList;
 import io.kubernetes.client.openapi.models.V1RoleBindingList;
+import io.kubernetes.client.openapi.models.V1RoleList;
 import io.kubernetes.client.openapi.models.V1Secret;
 import io.kubernetes.client.openapi.models.V1SecretList;
 import io.kubernetes.client.openapi.models.V1Service;
@@ -1487,7 +1494,6 @@ public class Kubernetes implements LoggedTest {
         null, // indicates that modifications should not be persisted
         null // fieldManager is a name associated with the actor
     );
-    rbacAuthApi.listRoleBindingForAllNamespaces(ALLOW_WATCH_BOOKMARKS, PRETTY, PRETTY, PRETTY, GRACE_PERIOD, PRETTY, RESOURCE_VERSION, TIMEOUT_SECONDS, ALLOW_WATCH_BOOKMARKS);
 
     return true;
   }
@@ -1517,6 +1523,29 @@ public class Kubernetes implements LoggedTest {
     return true;
   }
 
+  public static V1RoleBindingList listNamespacedRoleBinding(String namespace) throws ApiException {
+    V1RoleBindingList roleBindings;
+    try {
+      roleBindings = rbacAuthApi.listNamespacedRoleBinding(
+          namespace,
+          PRETTY,
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
+          null,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return roleBindings;
+  }
+
+
   public static V1RoleBindingList listClusterRoleBindings() throws ApiException {
     V1RoleBindingList roleBindings;
 
@@ -1538,6 +1567,30 @@ public class Kubernetes implements LoggedTest {
     }
 
     return roleBindings;
+  }
+
+  public static V1RoleList listNamespacedRole(String namespace) throws ApiException {
+    V1RoleList roles;
+
+    try {
+      roles = rbacAuthApi.listNamespacedRole(
+          namespace,
+          PRETTY,
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
+          null,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+
+    return roles;
   }
 
   public static V1ClusterRoleList listClusterRoles() throws ApiException {
@@ -1564,4 +1617,88 @@ public class Kubernetes implements LoggedTest {
   }
 
   //------------------------
+
+  public static ExtensionsV1beta1IngressList listIngressExtensions(String namespace) throws ApiException {
+    ExtensionsV1beta1IngressList ingressList;
+    try {
+      ExtensionsV1beta1Api apiInstance = new ExtensionsV1beta1Api(apiClient);
+      ingressList = apiInstance.listNamespacedIngress(
+          namespace, // namespace
+          PRETTY, // String | If 'true', then the output is pretty printed.
+          ALLOW_WATCH_BOOKMARKS, // Boolean | allowWatchBookmarks requests watch events with type \"BOOKMARK\".
+          null, // String | The continue option should be set when retrieving more results from the server.
+          null, // String | A selector to restrict the list of returned objects by their fields.
+          null, // String | A selector to restrict the list of returned objects by their labels.
+          null, // Integer | limit is a maximum number of responses to return for a list call.
+          RESOURCE_VERSION, // String | When specified with a watch call, shows changes that occur
+          // after that particular version of a resource.
+          TIMEOUT_SECONDS, // Integer | Timeout for the list/watch call.
+          ALLOW_WATCH_BOOKMARKS // Boolean | Watch for changes to the described resources and return
+      // them as a stream of add, update, and remove notifications. Specify resourceVersion.
+      );
+      return ingressList;
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+  }
+
+  public static ExtensionsV1beta1Ingress getIngressExtension(String namespace, String name) throws ApiException {
+    ExtensionsV1beta1Ingress ingress = null;
+    try {
+      ExtensionsV1beta1IngressList list = listIngressExtensions(namespace);
+      List<ExtensionsV1beta1Ingress> items = list.getItems();
+      for (ExtensionsV1beta1Ingress item : items) {
+        if (name.equals(item.getMetadata().getName())) {
+          ingress = item;
+        }
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return ingress;
+  }
+
+  public static NetworkingV1beta1IngressList listIngress(String namespace) throws ApiException {
+    NetworkingV1beta1IngressList ingressList;
+    try {
+      NetworkingV1beta1Api apiInstance = new NetworkingV1beta1Api(apiClient);
+      ingressList = apiInstance.listNamespacedIngress(
+          namespace, // namespace
+          PRETTY, // String | If 'true', then the output is pretty printed.
+          ALLOW_WATCH_BOOKMARKS, // Boolean | allowWatchBookmarks requests watch events with type \"BOOKMARK\".
+          null, // String | The continue option should be set when retrieving more results from the server.
+          null, // String | A selector to restrict the list of returned objects by their fields.
+          null, // String | A selector to restrict the list of returned objects by their labels.
+          null, // Integer | limit is a maximum number of responses to return for a list call.
+          RESOURCE_VERSION, // String | When specified with a watch call, shows changes that occur
+          // after that particular version of a resource.
+          TIMEOUT_SECONDS, // Integer | Timeout for the list/watch call.
+          ALLOW_WATCH_BOOKMARKS // Boolean | Watch for changes to the described resources and return
+      // them as a stream of add, update, and remove notifications. Specify resourceVersion.
+      );
+      return ingressList;
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+  }
+
+  public static NetworkingV1beta1Ingress getIngress(String namespace, String name) throws ApiException {
+    NetworkingV1beta1Ingress ingress = null;
+    try {
+      NetworkingV1beta1IngressList list = listIngress(namespace);
+      List<NetworkingV1beta1Ingress> items = list.getItems();
+      for (NetworkingV1beta1Ingress item : items) {
+        if (name.equals(item.getMetadata().getName())) {
+          ingress = item;
+        }
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return ingress;
+  }
 }
