@@ -76,6 +76,7 @@ public class CleanupUtil {
    */
   public static boolean listArtifacts(String namespace) {
     boolean doesntExist = true;
+    logger.info("Listing artifacts in namespace {0}", namespace);
 
     // Check if domain exists
     try {
@@ -87,7 +88,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("DomainList is empty");
+        logger.info("DomainList is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -104,7 +105,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("ReplicaSet is empty");
+        logger.info("ReplicaSet is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -121,7 +122,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("JobList is empty");
+        logger.info("JobList is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -138,7 +139,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("ConfigMap list is empty");
+        logger.info("ConfigMap list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -155,7 +156,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Secret list is empty");
+        logger.info("Secret list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -182,7 +183,7 @@ public class CleanupUtil {
             });
             doesntExist = false;
           } else {
-            logger.info("Persistent Volume List is empty");
+            logger.info("Persistent Volume List is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
           }
         }
       }
@@ -201,7 +202,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Deployment list is empty");
+        logger.info("Deployment list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -218,7 +219,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Persistent Volume Claims list is empty");
+        logger.info("Persistent Volume Claims list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -235,7 +236,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Service Account list is empty");
+        logger.info("Service Account list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -252,7 +253,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Ingress list is empty");
+        logger.info("Ingress list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -269,7 +270,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Ingress extension list is empty");
+        logger.info("Ingress extension list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -286,7 +287,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Namespaced role list is empty");
+        logger.info("Namespaced role list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -303,7 +304,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Namespaced role bindings list is empty");
+        logger.info("Namespaced role bindings list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -320,7 +321,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Cluster Roles list is empty");
+        logger.info("Cluster Roles list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -337,7 +338,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Cluster RoleBindings is empty");
+        logger.info("Cluster RoleBindings is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -354,7 +355,7 @@ public class CleanupUtil {
         });
         doesntExist = false;
       } else {
-        logger.info("Namespace list is empty");
+        logger.info("Namespace list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());

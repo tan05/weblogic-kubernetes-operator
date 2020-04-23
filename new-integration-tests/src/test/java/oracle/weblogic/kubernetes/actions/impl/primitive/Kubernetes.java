@@ -1435,7 +1435,6 @@ public class Kubernetes implements LoggedTest {
       if (VERBOSE) {
         logger.info(dump(listNamespacedJob));
       }
-      logger.info(dump(listNamespacedJob));
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1487,7 +1486,6 @@ public class Kubernetes implements LoggedTest {
    * @throws ApiException when list fails
    */
   public static V1ReplicaSetList listReplicaSets(String namespace) throws ApiException {
-    logger.info("Listing replica sets in namespace {0}", namespace);
     try {
       AppsV1Api apiInstance = new AppsV1Api(apiClient);
       V1ReplicaSetList listNamespacedReplicaSet = apiInstance.listNamespacedReplicaSet(
