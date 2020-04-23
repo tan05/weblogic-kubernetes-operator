@@ -229,7 +229,7 @@ public class CleanupUtil {
     // check if services exist
     try {
       if (!Kubernetes.listServices(namespace).getItems().isEmpty()) {
-        logger.info("Service Accounts still exists");
+        logger.info("Services still exists");
         List<V1Service> items = Kubernetes.listServices(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
