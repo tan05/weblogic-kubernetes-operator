@@ -265,26 +265,27 @@ public class Kubernetes implements LoggedTest {
   }
 
   /**
-   * List deployments in a given namespace.
+   * List deployments in the given namespace.
    *
-   * @param namespace Namespace in which to list the deployments
-   * @return V1DeploymentList of deployments in the Kubernetes cluster
+   * @param namespace namespace in which to list the deployments
+   * @return list of deployment objects as {@link V1DeploymentList}
    * @throws ApiException when listing fails
    */
   public static V1DeploymentList listDeployments(String namespace) throws ApiException {
     V1DeploymentList deployments;
     try {
       AppsV1Api apiInstance = new AppsV1Api(apiClient);
-      deployments = apiInstance.listNamespacedDeployment(namespace,
-          PRETTY, // true/false pretty print the output
-          ALLOW_WATCH_BOOKMARKS, // allowWatchBookmarks requests watch events with type "BOOKMARK".
-          null, // set when retrieving more results from the server
-          null, // restrict list based on labels
-          null, // restrict list based on fields
-          null, // maximum number of responses to return for a list call
-          RESOURCE_VERSION, // shows changes that occur after that particular version of a resource
-          TIMEOUT_SECONDS, // Timeout for the list/watch call
-          Boolean.FALSE // Watch for changes to the described resources
+      deployments = apiInstance.listNamespacedDeployment(
+          namespace, // String | namespace
+          PRETTY, // boolean | If true, then the output is pretty printed.
+          ALLOW_WATCH_BOOKMARKS, // Boolean | allowWatchBookmarks requests watch events with type \"BOOKMARK\".
+          null, // String | The continue option should be set when retrieving more results from the server.
+          null, // String | A selector to restrict the list of returned objects by their fields.
+          null, // String | A selector to restrict the list of returned objects by their labels.
+          null, // Integer | limit is a maximum number of responses to return for a list call.
+          RESOURCE_VERSION, // String | Shows changes that occur after that particular version of a resource.
+          TIMEOUT_SECONDS, // Integer | Timeout for the list/watch call.
+          Boolean.FALSE // Boolean | Watch for changes to the described resources
       );
       if (VERBOSE) {
         logger.info(dump(deployments));
@@ -299,8 +300,8 @@ public class Kubernetes implements LoggedTest {
   /**
    * Delete the deployment artifact.
    *
-   * @param namespace Namespace in which to delete the deployment
-   * @param name name of the deployment
+   * @param namespace namespace in which to delete the deployment
+   * @param name deployment name
    * @return true if deletion is successful otherwise false
    * @throws ApiException when delete fails
    */
@@ -309,14 +310,14 @@ public class Kubernetes implements LoggedTest {
     try {
       AppsV1Api apiInstance = new AppsV1Api(apiClient);
       V1Status deleteNamespacedDeployment = apiInstance.deleteNamespacedDeployment(
-          name, // deployment object name
-          namespace, // namespace in which the deployment exists
-          PRETTY, // pretty print
-          null, // dryRun, modifications to persist or no
-          GRACE_PERIOD, // grace period in seconds, 0 means immediate deletion of the artifact
-          null, // orphan dependents
-          FOREGROUND, // propagation policy , if Foreground cascade the deletion of all dependents
-          null // delete options
+          name, // String | deployment object name
+          namespace, // String | namespace in which the deployment exists
+          PRETTY, // boolean | If true, then the output is pretty printed
+          null, // String | When present, indicates that modifications should not be persisted
+          GRACE_PERIOD, // Integer | The duration in seconds before the object should be deleted
+          null, // Boolean | Deprecated: use the PropagationPolicy
+          FOREGROUND, // String | Whether and how garbage collection will be performed.
+          null // V1DeleteOptions
       );
       if (deleteNamespacedDeployment.getStatus().equals("Success")) {
         logger.info("Suucessfully deleted the deployment {0} in namespace {1}", name, namespace);

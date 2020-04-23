@@ -21,6 +21,8 @@ import io.kubernetes.client.openapi.models.V1Secret;
 import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServiceAccount;
 import oracle.weblogic.domain.Domain;
+import oracle.weblogic.kubernetes.actions.TestActions;
+import oracle.weblogic.kubernetes.actions.impl.primitive.HelmParams;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import org.awaitility.core.ConditionFactory;
 
@@ -37,6 +39,7 @@ public class CleanupUtil {
 
   private static ConditionFactory withStandardRetryPolicy = null;
   private static final boolean DEBUG = true;
+  public static final String OPERATOR_RELEASE_NAME = "weblogic-operator";
 
   /**
    * Cleanup all artifacts in the Kubernetes cluster. Waits for the deletion to be completed until up to 3 minutes.
@@ -45,6 +48,10 @@ public class CleanupUtil {
    */
   public static void cleanup(List<String> namespaces) {
 
+    // delete domain
+    // uninstall operator using helm
+    // uninstall ingress using helm
+    // uninstall traefik using helm
     // Delete all the artifacts in the list of namespaces
     deleteArtifacts(namespaces);
 
@@ -66,6 +73,16 @@ public class CleanupUtil {
                   condition.getRemainingTimeInMS()))
           .until(CleanupUtil.artifactsDoesntExist(namespace));
     });
+  }
+
+  private void uninstallOperator() {
+    HelmParams opHelmParams = new HelmParams()
+        .releaseName(OPERATOR_RELEASE_NAME);
+    TestActions.uninstallOperator(opHelmParams);
+  }
+
+  private boolean isOperatorNamespace(String namespace) {
+    return false;
   }
 
   /**
