@@ -82,6 +82,7 @@ public class Kubernetes implements LoggedTest {
   private static String FOREGROUND = "Foreground";
   private static String BACKGROUND = "Background";
   private static int GRACE_PERIOD = 0;
+  private static final boolean VERBOSE = false;
 
   // Core Kubernetes API clients
   private static ApiClient apiClient = null;
@@ -285,7 +286,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           Boolean.FALSE // Watch for changes to the described resources
       );
-      logger.info(dump(deployments));
+      if (VERBOSE) {
+        logger.info(dump(deployments));
+      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -425,6 +428,9 @@ public class Kubernetes implements LoggedTest {
               null, // Timeout for the list/watch call.
               Boolean.FALSE // Watch for changes to the described resources.
           );
+      if (VERBOSE) {
+        logger.info(dump(v1PodList));
+      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -508,6 +514,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
+      if (VERBOSE) {
+        logger.info(dump(namespaceList));
+      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -539,6 +548,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
+      if (VERBOSE) {
+        logger.info(dump(namespaceList));
+      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -790,6 +802,9 @@ public class Kubernetes implements LoggedTest {
     KubernetesApiResponse<DomainList> response = null;
     try {
       response = crdClient.list(namespace);
+      if (VERBOSE) {
+        logger.info(dump(response.getObject()));
+      }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
       throw ex;
@@ -863,6 +878,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
+      if (VERBOSE) {
+        logger.info(dump(configMapList));
+      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -973,6 +991,9 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1SecretList listSecrets(String namespace) {
     KubernetesApiResponse<V1SecretList> list = secretClient.list(namespace);
+    if (VERBOSE) {
+      logger.info(dump(list));
+    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1112,6 +1133,9 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1PersistentVolumeList listPersistentVolumes() {
     KubernetesApiResponse<V1PersistentVolumeList> list = pvClient.list();
+    if (VERBOSE) {
+      logger.info(dump(list));
+    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1141,6 +1165,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
+      if (VERBOSE) {
+        logger.info(dump(listPersistentVolume));
+      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -1155,6 +1182,9 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1PersistentVolumeClaimList listPersistentVolumeClaims(String namespace) {
     KubernetesApiResponse<V1PersistentVolumeClaimList> list = pvcClient.list(namespace);
+    if (VERBOSE) {
+      logger.info(dump(list));
+    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1241,6 +1271,9 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1ServiceAccountList listServiceAccounts(String namespace) {
     KubernetesApiResponse<V1ServiceAccountList> list = serviceAccountClient.list(namespace);
+    if (VERBOSE) {
+      logger.info(dump(list));
+    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1327,7 +1360,9 @@ public class Kubernetes implements LoggedTest {
   public static V1ServiceList listServices(String namespace) {
 
     KubernetesApiResponse<V1ServiceList> list = serviceClient.list(namespace);
-
+    if (VERBOSE) {
+      logger.info(dump(list));
+    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1397,6 +1432,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           Boolean.FALSE // Watch for changes to the described resources
       );
+      if (VERBOSE) {
+        logger.info(dump(listNamespacedJob));
+      }
       logger.info(dump(listNamespacedJob));
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
@@ -1464,7 +1502,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           Boolean.FALSE // Watch for changes to the described resources
       );
-      logger.info(dump(listNamespacedReplicaSet));
+      if (VERBOSE) {
+        logger.info(dump(listNamespacedReplicaSet));
+      }
       return listNamespacedReplicaSet;
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
@@ -1546,6 +1586,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS,
           ALLOW_WATCH_BOOKMARKS
       );
+      if (VERBOSE) {
+        logger.info(dump(roleBindings));
+      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1574,6 +1617,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS,
           ALLOW_WATCH_BOOKMARKS
       );
+      if (VERBOSE) {
+        logger.info(dump(roleBindings));
+      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1605,6 +1651,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS,
           ALLOW_WATCH_BOOKMARKS
       );
+      if (VERBOSE) {
+        logger.info(dump(roles));
+      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1634,6 +1683,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS,
           ALLOW_WATCH_BOOKMARKS
       );
+      if (VERBOSE) {
+        logger.info(dump(roles));
+      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1667,6 +1719,9 @@ public class Kubernetes implements LoggedTest {
           ALLOW_WATCH_BOOKMARKS // Boolean | Watch for changes to the described resources and return
       // them as a stream of add, update, and remove notifications. Specify resourceVersion.
       );
+      if (VERBOSE) {
+        logger.info(dump(ingressList));
+      }
       return ingressList;
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
@@ -1724,6 +1779,9 @@ public class Kubernetes implements LoggedTest {
           ALLOW_WATCH_BOOKMARKS // Boolean | Watch for changes to the described resources and return
       // them as a stream of add, update, and remove notifications. Specify resourceVersion.
       );
+      if (VERBOSE) {
+        logger.info(dump(ingressList));
+      }
       return ingressList;
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());

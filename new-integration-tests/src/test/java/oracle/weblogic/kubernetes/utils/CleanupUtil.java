@@ -80,11 +80,11 @@ public class CleanupUtil {
     // Check if domain exists
     try {
       if (!Kubernetes.listDomains(namespace).getItems().isEmpty()) {
+        logger.info("Domain still exists");
         List<Domain> items = Kubernetes.listDomains(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Domain still exists");
         doesntExist = false;
       } else {
         logger.info("DomainList is empty");
@@ -97,11 +97,11 @@ public class CleanupUtil {
     // Check if the replica sets exist
     try {
       if (!Kubernetes.listReplicaSets(namespace).getItems().isEmpty()) {
+        logger.info("ReplicaSets still exists");
         List<V1ReplicaSet> items = Kubernetes.listReplicaSets(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("ReplicaSets still exists");
         doesntExist = false;
       } else {
         logger.info("ReplicaSet is empty");
@@ -114,11 +114,11 @@ public class CleanupUtil {
     // check if the jobs exist
     try {
       if (!Kubernetes.listJobs(namespace).getItems().isEmpty()) {
+        logger.info("Jobs still exists");
         List<V1Job> items = Kubernetes.listJobs(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Jobs still exists");
         doesntExist = false;
       } else {
         logger.info("JobList is empty");
@@ -131,11 +131,11 @@ public class CleanupUtil {
     // check if the configmaps exist
     try {
       if (!Kubernetes.listConfigMaps(namespace).getItems().isEmpty()) {
+        logger.info("Config Maps still exists");
         List<V1ConfigMap> items = Kubernetes.listConfigMaps(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Config Maps still exists");
         doesntExist = false;
       } else {
         logger.info("ConfigMap list is empty");
@@ -148,11 +148,11 @@ public class CleanupUtil {
     // check if the secrets exist
     try {
       if (!Kubernetes.listSecrets(namespace).getItems().isEmpty()) {
+        logger.info("Secrets still exists");
         List<V1Secret> items = Kubernetes.listSecrets(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Secrets still exists");
         doesntExist = false;
       } else {
         logger.info("Secret list is empty");
@@ -173,13 +173,13 @@ public class CleanupUtil {
           if (!Kubernetes.listPersistentVolumes(
               String.format("weblogic.domainUID in (%s)", label))
               .getItems().isEmpty()) {
+            logger.info("Persistent Volumes still exists");
             List<V1PersistentVolume> items = Kubernetes.listPersistentVolumes(
                 String.format("weblogic.domainUID in (%s)", label))
                 .getItems();
             items.forEach((item1) -> {
               debug(item1.getMetadata().getName());
             });
-            logger.info("Persistent Volumes still exists");
             doesntExist = false;
           } else {
             logger.info("Persistent Volume List is empty");
@@ -194,11 +194,11 @@ public class CleanupUtil {
     // check if deployments exist
     try {
       if (!Kubernetes.listDeployments(namespace).getItems().isEmpty()) {
+        logger.info("Deployments still exists");
         List<V1Deployment> items = Kubernetes.listDeployments(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Deployments still exists");
         doesntExist = false;
       } else {
         logger.info("Deployment list is empty");
@@ -211,11 +211,11 @@ public class CleanupUtil {
     // get pvc
     try {
       if (!Kubernetes.listPersistentVolumeClaims(namespace).getItems().isEmpty()) {
+        logger.info("Persistent Volumes Claims still exists");
         List<V1PersistentVolumeClaim> items = Kubernetes.listPersistentVolumeClaims(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Persistent Volumes Claims still exists");
         doesntExist = false;
       } else {
         logger.info("Persistent Volume Claims list is empty");
@@ -228,11 +228,11 @@ public class CleanupUtil {
     // check if service accounts exist
     try {
       if (!Kubernetes.listServiceAccounts(namespace).getItems().isEmpty()) {
+        logger.info("Service Accounts still exists");
         List<V1ServiceAccount> items = Kubernetes.listServiceAccounts(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Service Accounts still exists");
         doesntExist = false;
       } else {
         logger.info("Service Account list is empty");
@@ -245,11 +245,11 @@ public class CleanupUtil {
     // check if ingress exist
     try {
       if (!Kubernetes.listIngress(namespace).getItems().isEmpty()) {
+        logger.info("Ingress service still exists");
         List<NetworkingV1beta1Ingress> items = Kubernetes.listIngress(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Ingress service still exists");
         doesntExist = false;
       } else {
         logger.info("Ingress list is empty");
@@ -262,11 +262,11 @@ public class CleanupUtil {
     // check if ingress extensions exist
     try {
       if (!Kubernetes.listIngressExtensions(namespace).getItems().isEmpty()) {
+        logger.info("Ingress extensions still exists");
         List<ExtensionsV1beta1Ingress> items = Kubernetes.listIngressExtensions(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Ingress extensions still exists");
         doesntExist = false;
       } else {
         logger.info("Ingress extension list is empty");
@@ -279,11 +279,11 @@ public class CleanupUtil {
     // check if namespaced roles exist
     try {
       if (!Kubernetes.listNamespacedRole(namespace).getItems().isEmpty()) {
+        logger.info("Namespaced roles still exists");
         List<V1Role> items = Kubernetes.listNamespacedRole(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Namespaced roles still exists");
         doesntExist = false;
       } else {
         logger.info("Namespaced role list is empty");
@@ -296,11 +296,11 @@ public class CleanupUtil {
     // check if namespaced role bindings exist
     try {
       if (!Kubernetes.listNamespacedRoleBinding(namespace).getItems().isEmpty()) {
+        logger.info("Namespaced role bindings still exists");
         List<V1RoleBinding> items = Kubernetes.listNamespacedRoleBinding(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Namespaced role bindings still exists");
         doesntExist = false;
       } else {
         logger.info("Namespaced role bindings list is empty");
@@ -313,11 +313,11 @@ public class CleanupUtil {
     // check if cluster roles exist
     try {
       if (!Kubernetes.listClusterRoles().getItems().isEmpty()) {
+        logger.info("Cluster Roles still exists");
         List<V1ClusterRole> items = Kubernetes.listClusterRoles().getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Cluster Roles still exists");
         doesntExist = false;
       } else {
         logger.info("Cluster Roles list is empty");
@@ -330,11 +330,11 @@ public class CleanupUtil {
     // check if cluster rolebindings exist
     try {
       if (!Kubernetes.listClusterRoleBindings().getItems().isEmpty()) {
+        logger.info("Cluster RoleBings still exists");
         List<V1RoleBinding> items = Kubernetes.listClusterRoleBindings().getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        logger.info("Cluster RoleBings still exists");
         doesntExist = false;
       } else {
         logger.info("Cluster RoleBindings is empty");
@@ -347,11 +347,11 @@ public class CleanupUtil {
     // get namespaces
     try {
       if (Kubernetes.listNamespaces().contains(namespace)) {
+        logger.info("Namespace still exists");
         List<String> items = Kubernetes.listNamespaces();
         items.forEach((item) -> {
           debug(item);
         });
-        logger.info("Namespace still exists");
         doesntExist = false;
       } else {
         logger.info("Namespace list is empty");
@@ -499,10 +499,9 @@ public class CleanupUtil {
     }
   }
 
-  private static void debug(String log, Object... params) {
+  private static void debug(String log) {
     if (DEBUG) {
-      String message = "DEBUG\n" + log + "\n";
-      logger.info(message, params);
+      logger.info(log);
     }
   }
 
