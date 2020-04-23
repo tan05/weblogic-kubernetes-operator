@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-import io.kubernetes.client.openapi.models.ExtensionsV1beta1Ingress;
 import io.kubernetes.client.openapi.models.NetworkingV1beta1Ingress;
 import io.kubernetes.client.openapi.models.V1ClusterRole;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
@@ -78,7 +77,7 @@ public class CleanupUtil {
     boolean doesntExist = true;
     logger.info("Listing artifacts in namespace {0}", namespace);
 
-    // Check if domain exists
+    // Check if domain exists , exist only in domain namespace
     try {
       if (!Kubernetes.listDomains(namespace).getItems().isEmpty()) {
         logger.info("Domain still exists");
@@ -95,7 +94,7 @@ public class CleanupUtil {
       logger.warning("Failed to list domains");
     }
 
-    // Check if the replica sets exist
+    // Check if the replica sets exist , exist only in operator namespace
     try {
       if (!Kubernetes.listReplicaSets(namespace).getItems().isEmpty()) {
         logger.info("ReplicaSets still exists");
@@ -112,7 +111,7 @@ public class CleanupUtil {
       logger.warning("Failed to list replica sets");
     }
 
-    // check if the jobs exist
+    // check if the jobs exist , exist only in domain namespace
     try {
       if (!Kubernetes.listJobs(namespace).getItems().isEmpty()) {
         logger.info("Jobs still exists");
@@ -192,7 +191,7 @@ public class CleanupUtil {
       logger.warning("Failed to list persistent volumes");
     }
 
-    // check if deployments exist
+    // check if deployments exist , exist only in operator namespace
     try {
       if (!Kubernetes.listDeployments(namespace).getItems().isEmpty()) {
         logger.info("Deployments still exists");
@@ -209,7 +208,7 @@ public class CleanupUtil {
       logger.warning("Failed to list deployments");
     }
 
-    // get pvc
+    // get pvc , exist only in domain namespace
     try {
       if (!Kubernetes.listPersistentVolumeClaims(namespace).getItems().isEmpty()) {
         logger.info("Persistent Volumes Claims still exists");
@@ -243,7 +242,7 @@ public class CleanupUtil {
       logger.warning("Failed to list service accounts");
     }
 
-    // check if ingress exist
+    // check if ingress exist , exist only in domain namespace
     try {
       if (!Kubernetes.listIngress(namespace).getItems().isEmpty()) {
         logger.info("Ingress service still exists");
@@ -260,24 +259,7 @@ public class CleanupUtil {
       logger.warning("Failed to list Ingress");
     }
 
-    // check if ingress extensions exist
-    try {
-      if (!Kubernetes.listIngressExtensions(namespace).getItems().isEmpty()) {
-        logger.info("Ingress extensions still exists");
-        List<ExtensionsV1beta1Ingress> items = Kubernetes.listIngressExtensions(namespace).getItems();
-        items.forEach((item) -> {
-          debug(item.getMetadata().getName());
-        });
-        doesntExist = false;
-      } else {
-        logger.info("Ingress extension list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
-      }
-    } catch (Exception ex) {
-      logger.warning(ex.getMessage());
-      logger.warning("Failed to list IngressExtensions");
-    }
-
-    // check if namespaced roles exist
+    // check if namespaced roles exist , exist only in operator namespace
     try {
       if (!Kubernetes.listNamespacedRole(namespace).getItems().isEmpty()) {
         logger.info("Namespaced roles still exists");
@@ -311,11 +293,12 @@ public class CleanupUtil {
       logger.warning("Failed to list namespaced role bindings");
     }
 
-    // check if cluster roles exist
+    // check if cluster roles exist, check with selector
+    // k get clusterroles --all-namespaces --selector='weblogic.operatorName'
     try {
-      if (!Kubernetes.listClusterRoles().getItems().isEmpty()) {
+      if (!Kubernetes.listClusterRoles("weblogic.operatorName").getItems().isEmpty()) {
         logger.info("Cluster Roles still exists");
-        List<V1ClusterRole> items = Kubernetes.listClusterRoles().getItems();
+        List<V1ClusterRole> items = Kubernetes.listClusterRoles("weblogic.operatorName").getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
@@ -328,11 +311,12 @@ public class CleanupUtil {
       logger.warning("Failed to list cluster roles");
     }
 
-    // check if cluster rolebindings exist
+    // check if cluster rolebindings exist, check with selector
+    // k get clusterrolebindiings --all-namespaces --selector='weblogic.operatorName'
     try {
-      if (!Kubernetes.listClusterRoleBindings().getItems().isEmpty()) {
+      if (!Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems().isEmpty()) {
         logger.info("Cluster RoleBings still exists");
-        List<V1RoleBinding> items = Kubernetes.listClusterRoleBindings().getItems();
+        List<V1RoleBinding> items = Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });

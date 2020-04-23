@@ -1597,10 +1597,11 @@ public class Kubernetes implements LoggedTest {
   /**
    * List cluster role bindings.
    *
+   * @param labelSelector labels to narrow the list
    * @return V1RoleBindingList list of V1RoleBinding objects
    * @throws ApiException when listing fails
    */
-  public static V1RoleBindingList listClusterRoleBindings() throws ApiException {
+  public static V1RoleBindingList listClusterRoleBindings(String labelSelector) throws ApiException {
     V1RoleBindingList roleBindings;
 
     try {
@@ -1608,7 +1609,7 @@ public class Kubernetes implements LoggedTest {
           ALLOW_WATCH_BOOKMARKS,
           null,
           null,
-          null,
+          labelSelector,
           null,
           PRETTY,
           RESOURCE_VERSION,
@@ -1663,10 +1664,11 @@ public class Kubernetes implements LoggedTest {
   /**
    * List roles in the Kubernetes cluster.
    *
+   * @param labelSelector labels to narrow the list
    * @return V1ClusterRoleList list of V1ClusterRole objects
    * @throws ApiException when listing fails
    */
-  public static V1ClusterRoleList listClusterRoles() throws ApiException {
+  public static V1ClusterRoleList listClusterRoles(String labelSelector) throws ApiException {
     V1ClusterRoleList roles;
 
     try {
@@ -1674,7 +1676,7 @@ public class Kubernetes implements LoggedTest {
           PRETTY,
           ALLOW_WATCH_BOOKMARKS,
           null,
-          null,
+          labelSelector,
           null,
           null,
           RESOURCE_VERSION,
