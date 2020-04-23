@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
+import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.NetworkingV1beta1Ingress;
 import io.kubernetes.client.openapi.models.V1ClusterRole;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
@@ -47,53 +48,99 @@ public class CleanupUtil {
    * @param namespaces list of namespaces
    */
   public static void cleanup(List<String> namespaces) {
+    try {
+      // iterate through the namespaces and delete domain as a
+      // first entity if its not operator namespace
+      for (var namespace : namespaces) {
+        if (!isOperatorNamespace(namespace)) {
+          deleteDomains(namespace);
+        }
+      }
+      // iterate through the namespaces and delete operator if
+      // its operator namespace
+      for (var namespace : namespaces) {
+        if (isOperatorNamespace(namespace)) {
+          uninstallOperator(namespace);
+        }
+      }
 
-    // delete domain
-    // uninstall operator using helm
-    // uninstall ingress using helm
-    // uninstall traefik using helm
-    // Delete all the artifacts in the list of namespaces
-    deleteArtifacts(namespaces);
+      // uninstall ingress using helm
+      // uninstall traefik using helm
 
-    // wait for the artifacts to be deleted waiting for a maximum of 3 minutes
-    withStandardRetryPolicy = with().pollDelay(2, SECONDS)
-        .and().with().pollInterval(10, SECONDS)
-        .atMost(3, MINUTES).await();
-
-    namespaces.stream().map((namespace) -> {
-      logger.info("Check for artifacts in namespace {0}", namespace);
-      return namespace;
-    }).forEachOrdered((namespace) -> {
-      withStandardRetryPolicy
-          .conditionEvaluationListener(
-              condition -> logger.info("Waiting for artifacts to be deleted in namespace {0}, "
-                  + "(elapsed time {1} , remaining time {2}",
-                  namespace,
-                  condition.getElapsedTimeInMS(),
-                  condition.getRemainingTimeInMS()))
-          .until(CleanupUtil.artifactsDoesntExist(namespace));
-    });
-  }
-
-  private void uninstallOperator() {
-    HelmParams opHelmParams = new HelmParams()
-        .releaseName(OPERATOR_RELEASE_NAME);
-    TestActions.uninstallOperator(opHelmParams);
-  }
-
-  private boolean isOperatorNamespace(String namespace) {
-    return false;
+      // Delete all the artifacts in the list of namespaces
+      for (var namespace : namespaces) {
+        deleteArtifacts(namespace);
+      }
+      // wait for the artifacts to be deleted, waiting for a maximum of 3 minutes
+      withStandardRetryPolicy = with().pollDelay(2, SECONDS)
+          .and().with().pollInterval(10, SECONDS)
+          .atMost(3, MINUTES).await();
+      namespaces.stream().map((namespace) -> {
+        logger.info("Check for artifacts in namespace {0}", namespace);
+        return namespace;
+      }).forEachOrdered((namespace) -> {
+        withStandardRetryPolicy
+            .conditionEvaluationListener(
+                condition -> logger.info("Waiting for artifacts to be deleted in namespace {0}, "
+                    + "(elapsed time {1} , remaining time {2}",
+                    namespace,
+                    condition.getElapsedTimeInMS(),
+                    condition.getRemainingTimeInMS()))
+            .until(artifactsDoesntExist(namespace));
+      });
+    } catch (Exception ex) {
+      logger.warning("Cleanup failed");
+    }
   }
 
   /**
-   * List artifacts.
+   * Delete domains.
+   * @param namespace name of the namespace
+   */
+  private static void deleteDomains(String namespace) {
+    try {
+      for (var item : Kubernetes.listDomains(namespace).getItems()) {
+        String domainUid = item.getMetadata().getName();
+        logger.info("Deleting domain {0}", domainUid);
+        Kubernetes.deleteDomainCustomResource(domainUid, namespace);
+        // do we need to wait here until all the server pods are deleted ?
+      }
+    } catch (Exception ex) {
+      logger.severe(ex.getMessage());
+      logger.severe("Failed to delete domain or the {0} is not a domain namespace", namespace);
+    }
+  }
+
+  /**
+   * Uninstalls the operator.
+   * @param namespace name of the namespace
+   */
+  private static void uninstallOperator(String namespace) {
+    HelmParams opHelmParams = new HelmParams()
+        .releaseName(OPERATOR_RELEASE_NAME)
+        .namespace(namespace);
+    TestActions.uninstallOperator(opHelmParams);
+  }
+
+  /**
+   * Returns true if the namespace is operator namespace, otherwise false.
+   * @param namespace name of the namespace
+   * @return true if the namespace is operator namespace, otherwise false
+   * @throws ApiException when Kubernetes cluster query fails
+   */
+  public static boolean isOperatorNamespace(String namespace) throws ApiException {
+    return !Kubernetes.listPods(namespace, "weblogic.operatorName").getItems().isEmpty();
+  }
+
+  /**
+   * Returns true if artifacts exists in the Kubernetes cluster.
    *
    * @param namespace name of the namespace
    * @return true if at least one artifact exist otherwise false
    */
-  public static boolean listArtifacts(String namespace) {
+  public static boolean artifactsExists(String namespace) {
     boolean doesntExist = true;
-    logger.info("Listing artifacts in namespace {0}", namespace);
+    logger.info("Listing artifacts in namespace {0}\n", namespace);
 
     // Check if domain exists , exist only in domain namespace
     try {
@@ -393,130 +440,129 @@ public class CleanupUtil {
    */
   public static Callable<Boolean> artifactsDoesntExist(String namespace) {
     return () -> {
-      return listArtifacts(namespace);
+      return artifactsExists(namespace);
     };
   }
 
   /**
-   * Deletes the artifacts in the Kubernetes cluster in the namespaces list.
+   * Deletes the artifacts in the Kubernetes cluster in the given namespace.
    *
-   * @param namespaces list of namespaces
+   * @param namespace name of the namespace
    */
-  public static void deleteArtifacts(List<String> namespaces) {
-    for (String namespace : namespaces) {
-      logger.info("Cleaning up artifacts in namespace {0}", namespace);
+  public static void deleteArtifacts(String namespace) {
+    logger.info("Cleaning up artifacts in namespace {0}", namespace);
 
-      // Delete all Domain objects in given namespace
-      try {
-        for (var item : Kubernetes.listDomains(namespace).getItems()) {
-          Kubernetes.deleteDomainCustomResource(
-              item.getMetadata().getLabels().get("weblogic.domainUID"),
-              namespace
-          );
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup domains");
+    // Delete all Domain objects in given namespace
+    try {
+      for (var item : Kubernetes.listDomains(namespace).getItems()) {
+        Kubernetes.deleteDomainCustomResource(
+            item.getMetadata().getLabels().get("weblogic.domainUID"),
+            namespace
+        );
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup domains");
+    }
 
-      // Delete replicasets
-      try {
-        for (var item : Kubernetes.listReplicaSets(namespace).getItems()) {
-          Kubernetes.deleteReplicaSet(namespace, item.getMetadata().getName());
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup replica sets");
+    // Delete replicasets
+    try {
+      for (var item : Kubernetes.listReplicaSets(namespace).getItems()) {
+        Kubernetes.deleteReplicaSet(namespace, item.getMetadata().getName());
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup replica sets");
+    }
 
-      // Delete jobs
-      try {
-        for (var item : Kubernetes.listJobs(namespace).getItems()) {
-          Kubernetes.deleteJob(namespace, item.getMetadata().getName());
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup jobs");
+    // Delete jobs
+    try {
+      for (var item : Kubernetes.listJobs(namespace).getItems()) {
+        Kubernetes.deleteJob(namespace, item.getMetadata().getName());
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup jobs");
+    }
 
-      // Delete configmaps
-      try {
-        for (var item : Kubernetes.listConfigMaps(namespace).getItems()) {
-          Kubernetes.deleteConfigMap(item.getMetadata().getName(), namespace);
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup config maps");
+    // Delete configmaps
+    try {
+      for (var item : Kubernetes.listConfigMaps(namespace).getItems()) {
+        Kubernetes.deleteConfigMap(item.getMetadata().getName(), namespace);
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup config maps");
+    }
 
-      // Delete secrets
-      try {
-        for (var item : Kubernetes.listSecrets(namespace).getItems()) {
-          Kubernetes.deleteSecret(item.getMetadata().getName(), namespace);
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup secrets");
+    // Delete secrets
+    try {
+      for (var item : Kubernetes.listSecrets(namespace).getItems()) {
+        Kubernetes.deleteSecret(item.getMetadata().getName(), namespace);
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup secrets");
+    }
 
-      // Delete pv
-      try {
-        for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-          String label = Optional.ofNullable(item)
-              .map(pvc -> pvc.getMetadata())
-              .map(metadata -> metadata.getLabels())
-              .map(labels -> labels.get("weblogic.domainUID")).get();
-          if (label != null) {
-            for (var listPersistentVolume : Kubernetes
-                .listPersistentVolumes(String.format("weblogic.domainUID in (%s)", label))
-                .getItems()) {
-              Kubernetes.deletePv(listPersistentVolume.getMetadata().getName());
-            }
+    // Delete pv
+    try {
+      for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+        String label = Optional.ofNullable(item)
+            .map(pvc -> pvc.getMetadata())
+            .map(metadata -> metadata.getLabels())
+            .map(labels -> labels.get("weblogic.domainUID")).get();
+        if (label != null) {
+          for (var listPersistentVolume : Kubernetes
+              .listPersistentVolumes(String.format("weblogic.domainUID in (%s)", label))
+              .getItems()) {
+            Kubernetes.deletePv(listPersistentVolume.getMetadata().getName());
           }
         }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup persistent volumes");
       }
-
-      // Delete deployments
-      try {
-        for (var item : Kubernetes.listDeployments(namespace).getItems()) {
-          Kubernetes.deleteDeployment(namespace, item.getMetadata().getName());
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup deployments");
-      }
-
-      // Delete pvc
-      try {
-        for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-          Kubernetes.deletePvc(item.getMetadata().getName(), namespace);
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup persistent volume claims");
-      }
-
-      // Delete service accounts
-      try {
-        for (var item : Kubernetes.listServiceAccounts(namespace).getItems()) {
-          Kubernetes.deleteServiceAccount(item.getMetadata().getName(), namespace);
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup service accounts");
-      }
-      // Delete namespace
-      try {
-        Kubernetes.deleteNamespace(namespace);
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to cleanup namespace");
-        debug("");
-      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup persistent volumes");
     }
+
+    // Delete deployments
+    try {
+      for (var item : Kubernetes.listDeployments(namespace).getItems()) {
+        Kubernetes.deleteDeployment(namespace, item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup deployments");
+    }
+
+    // Delete pvc
+    try {
+      for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+        Kubernetes.deletePvc(item.getMetadata().getName(), namespace);
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup persistent volume claims");
+    }
+
+    // Delete service accounts
+    try {
+      for (var item : Kubernetes.listServiceAccounts(namespace).getItems()) {
+        Kubernetes.deleteServiceAccount(item.getMetadata().getName(), namespace);
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup service accounts");
+    }
+    // Delete namespace
+    try {
+      Kubernetes.deleteNamespace(namespace);
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup namespace");
+      debug("");
+    }
+
   }
 
   private static void debug(String log) {
