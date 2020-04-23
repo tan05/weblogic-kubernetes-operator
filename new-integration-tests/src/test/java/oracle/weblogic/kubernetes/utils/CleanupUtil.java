@@ -18,6 +18,7 @@ import io.kubernetes.client.openapi.models.V1ReplicaSet;
 import io.kubernetes.client.openapi.models.V1Role;
 import io.kubernetes.client.openapi.models.V1RoleBinding;
 import io.kubernetes.client.openapi.models.V1Secret;
+import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServiceAccount;
 import oracle.weblogic.domain.Domain;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
@@ -223,6 +224,23 @@ public class CleanupUtil {
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
       logger.warning("Failed to list persistent volume claims");
+    }
+
+    // check if services exist
+    try {
+      if (!Kubernetes.listServices(namespace).getItems().isEmpty()) {
+        logger.info("Service Accounts still exists");
+        List<V1Service> items = Kubernetes.listServices(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        doesntExist = false;
+      } else {
+        logger.info("Services list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list services");
     }
 
     // check if service accounts exist
