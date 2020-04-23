@@ -315,7 +315,7 @@ public class CleanupUtil {
     // k get clusterrolebindiings --all-namespaces --selector='weblogic.operatorName'
     try {
       if (!Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems().isEmpty()) {
-        logger.info("Cluster RoleBings still exists");
+        logger.info("Cluster RoleBindings still exists");
         List<V1RoleBinding> items = Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());

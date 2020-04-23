@@ -37,8 +37,6 @@ import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1DeploymentList;
 import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1JobList;
-import io.kubernetes.client.openapi.models.V1LabelSelector;
-import io.kubernetes.client.openapi.models.V1LabelSelectorRequirement;
 import io.kubernetes.client.openapi.models.V1Namespace;
 import io.kubernetes.client.openapi.models.V1NamespaceBuilder;
 import io.kubernetes.client.openapi.models.V1NamespaceList;
@@ -1672,22 +1670,13 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1ClusterRoleList listClusterRoles(String labelSelector) throws ApiException {
     V1ClusterRoleList roles;
-    V1LabelSelector v1LabelSelector = new V1LabelSelector()
-        .addMatchExpressionsItem(
-            new V1LabelSelectorRequirement()
-                .key(labelSelector)
-                .operator("Exists")
-        );
-    logger.info("V1LabelSelectorRequirement.toString() {0}", v1LabelSelector.getMatchExpressions().toString());
-    logger.info("LabelSelector.toString() {0}", v1LabelSelector.toString());
-
     try {
       roles = rbacAuthApi.listClusterRole(
           PRETTY,
           ALLOW_WATCH_BOOKMARKS,
           null,
-          labelSelector,
           null,
+          labelSelector,
           null,
           RESOURCE_VERSION,
           TIMEOUT_SECONDS,
