@@ -69,6 +69,303 @@ public class CleanupUtil {
   }
 
   /**
+   * List artifacts.
+   *
+   * @param namespace name of the namespace
+   * @return true if at least one artifact exist otherwise false
+   */
+  public static boolean listArtifacts(String namespace) {
+    boolean doesntExist = true;
+
+    // Check if domain exists
+    try {
+      if (!Kubernetes.listDomains(namespace).getItems().isEmpty()) {
+        List<Domain> items = Kubernetes.listDomains(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Domain still exists");
+        doesntExist = false;
+      } else {
+        logger.info("DomainList is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list domains");
+    }
+
+    // Check if the replica sets exist
+    try {
+      if (!Kubernetes.listReplicaSets(namespace).getItems().isEmpty()) {
+        List<V1ReplicaSet> items = Kubernetes.listReplicaSets(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("ReplicaSets still exists");
+        doesntExist = false;
+      } else {
+        logger.info("ReplicaSet is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list replica sets");
+    }
+
+    // check if the jobs exist
+    try {
+      if (!Kubernetes.listJobs(namespace).getItems().isEmpty()) {
+        List<V1Job> items = Kubernetes.listJobs(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Jobs still exists");
+        doesntExist = false;
+      } else {
+        logger.info("JobList is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list jobs");
+    }
+
+    // check if the configmaps exist
+    try {
+      if (!Kubernetes.listConfigMaps(namespace).getItems().isEmpty()) {
+        List<V1ConfigMap> items = Kubernetes.listConfigMaps(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Config Maps still exists");
+        doesntExist = false;
+      } else {
+        logger.info("ConfigMap list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list config maps");
+    }
+
+    // check if the secrets exist
+    try {
+      if (!Kubernetes.listSecrets(namespace).getItems().isEmpty()) {
+        List<V1Secret> items = Kubernetes.listSecrets(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Secrets still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Secret list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list secrets");
+    }
+
+    // check if persistent volume exist
+    try {
+      for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+        String label = Optional.ofNullable(item)
+            .map(pvc -> pvc.getMetadata())
+            .map(metadata -> metadata.getLabels())
+            .map(labels -> labels.get("weblogic.domainUID")).get();
+        if (label != null) {
+          if (!Kubernetes.listPersistentVolumes(
+              String.format("weblogic.domainUID in (%s)", label))
+              .getItems().isEmpty()) {
+            List<V1PersistentVolume> items = Kubernetes.listPersistentVolumes(
+                String.format("weblogic.domainUID in (%s)", label))
+                .getItems();
+            items.forEach((item1) -> {
+              debug(item1.getMetadata().getName());
+            });
+            logger.info("Persistent Volumes still exists");
+            doesntExist = false;
+          } else {
+            logger.info("Persistent Volume List is empty");
+          }
+        }
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list persistent volumes");
+    }
+
+    // check if deployments exist
+    try {
+      if (!Kubernetes.listDeployments(namespace).getItems().isEmpty()) {
+        List<V1Deployment> items = Kubernetes.listDeployments(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Deployments still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Deployment list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list deployments");
+    }
+
+    // get pvc
+    try {
+      if (!Kubernetes.listPersistentVolumeClaims(namespace).getItems().isEmpty()) {
+        List<V1PersistentVolumeClaim> items = Kubernetes.listPersistentVolumeClaims(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Persistent Volumes Claims still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Persistent Volume Claims list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list persistent volume claims");
+    }
+
+    // check if service accounts exist
+    try {
+      if (!Kubernetes.listServiceAccounts(namespace).getItems().isEmpty()) {
+        List<V1ServiceAccount> items = Kubernetes.listServiceAccounts(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Service Accounts still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Service Account list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list service accounts");
+    }
+
+    // check if ingress exist
+    try {
+      if (!Kubernetes.listIngress(namespace).getItems().isEmpty()) {
+        List<NetworkingV1beta1Ingress> items = Kubernetes.listIngress(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Ingress service still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Ingress list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list Ingress");
+    }
+
+    // check if ingress extensions exist
+    try {
+      if (!Kubernetes.listIngressExtensions(namespace).getItems().isEmpty()) {
+        List<ExtensionsV1beta1Ingress> items = Kubernetes.listIngressExtensions(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Ingress extensions still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Ingress extension list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list IngressExtensions");
+    }
+
+    // check if namespaced roles exist
+    try {
+      if (!Kubernetes.listNamespacedRole(namespace).getItems().isEmpty()) {
+        List<V1Role> items = Kubernetes.listNamespacedRole(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Namespaced roles still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Namespaced role list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list namespaced roles");
+    }
+
+    // check if namespaced role bindings exist
+    try {
+      if (!Kubernetes.listNamespacedRoleBinding(namespace).getItems().isEmpty()) {
+        List<V1RoleBinding> items = Kubernetes.listNamespacedRoleBinding(namespace).getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Namespaced role bindings still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Namespaced role bindings list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list namespaced role bindings");
+    }
+
+    // check if cluster roles exist
+    try {
+      if (!Kubernetes.listClusterRoles().getItems().isEmpty()) {
+        List<V1ClusterRole> items = Kubernetes.listClusterRoles().getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Cluster Roles still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Cluster Roles list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list cluster roles");
+    }
+
+    // check if cluster rolebindings exist
+    try {
+      if (!Kubernetes.listClusterRoleBindings().getItems().isEmpty()) {
+        List<V1RoleBinding> items = Kubernetes.listClusterRoleBindings().getItems();
+        items.forEach((item) -> {
+          debug(item.getMetadata().getName());
+        });
+        logger.info("Cluster RoleBings still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Cluster RoleBindings is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list Cluster Role Bindings");
+    }
+
+    // get namespaces
+    try {
+      if (Kubernetes.listNamespaces().contains(namespace)) {
+        List<String> items = Kubernetes.listNamespaces();
+        items.forEach((item) -> {
+          debug(item);
+        });
+        logger.info("Namespace still exists");
+        doesntExist = false;
+      } else {
+        logger.info("Namespace list is empty");
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to list namespaces");
+    }
+
+    return doesntExist;
+
+  }
+
+  /**
    * Checks if the artifacts in given namespace still exists.
    *
    * @param namespace name of the namespace
@@ -76,293 +373,7 @@ public class CleanupUtil {
    */
   public static Callable<Boolean> artifactsDoesntExist(String namespace) {
     return () -> {
-      boolean doesntExist = true;
-
-      // Check if domain exists
-      try {
-        if (!Kubernetes.listDomains(namespace).getItems().isEmpty()) {
-          List<Domain> items = Kubernetes.listDomains(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Domain still exists");
-          doesntExist = false;
-        } else {
-          logger.info("DomainList is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list domains");
-      }
-
-      // Check if the replica sets exist
-      try {
-        if (!Kubernetes.listReplicaSets(namespace).getItems().isEmpty()) {
-          List<V1ReplicaSet> items = Kubernetes.listReplicaSets(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("ReplicaSets still exists");
-          doesntExist = false;
-        } else {
-          logger.info("ReplicaSet is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list replica sets");
-      }
-
-      // check if the jobs exist
-      try {
-        if (!Kubernetes.listJobs(namespace).getItems().isEmpty()) {
-          List<V1Job> items = Kubernetes.listJobs(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Jobs still exists");
-          doesntExist = false;
-        } else {
-          logger.info("JobList is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list jobs");
-      }
-
-      // check if the configmaps exist
-      try {
-        if (!Kubernetes.listConfigMaps(namespace).getItems().isEmpty()) {
-          List<V1ConfigMap> items = Kubernetes.listConfigMaps(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Config Maps still exists");
-          doesntExist = false;
-        } else {
-          logger.info("ConfigMap list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list config maps");
-      }
-
-      // check if the secrets exist
-      try {
-        if (!Kubernetes.listSecrets(namespace).getItems().isEmpty()) {
-          List<V1Secret> items = Kubernetes.listSecrets(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Secrets still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Secret list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list secrets");
-      }
-
-      // check if persistent volume exist
-      try {
-        for (var item : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-          String label = Optional.ofNullable(item)
-              .map(pvc -> pvc.getMetadata())
-              .map(metadata -> metadata.getLabels())
-              .map(labels -> labels.get("weblogic.domainUID")).get();
-          if (label != null) {
-            if (!Kubernetes.listPersistentVolumes(
-                String.format("weblogic.domainUID in (%s)", label))
-                .getItems().isEmpty()) {
-              List<V1PersistentVolume> items = Kubernetes.listPersistentVolumes(
-                  String.format("weblogic.domainUID in (%s)", label))
-                  .getItems();
-              items.forEach((item1) -> {
-                debug(item1.getMetadata().getName());
-              });
-              logger.info("Persistent Volumes still exists");
-              doesntExist = false;
-            } else {
-              logger.info("Persistent Volume List is empty");
-            }
-          }
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list persistent volumes");
-      }
-
-      // check if deployments exist
-      try {
-        if (!Kubernetes.listDeployments(namespace).getItems().isEmpty()) {
-          List<V1Deployment> items = Kubernetes.listDeployments(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Deployments still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Deployment list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list deployments");
-      }
-
-      // get pvc
-      try {
-        if (!Kubernetes.listPersistentVolumeClaims(namespace).getItems().isEmpty()) {
-          List<V1PersistentVolumeClaim> items = Kubernetes.listPersistentVolumeClaims(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Persistent Volumes Claims still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Persistent Volume Claims list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list persistent volume claims");
-      }
-
-      // check if service accounts exist
-      try {
-        if (!Kubernetes.listServiceAccounts(namespace).getItems().isEmpty()) {
-          List<V1ServiceAccount> items = Kubernetes.listServiceAccounts(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Service Accounts still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Service Account list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list service accounts");
-      }
-
-      // check if ingress exist
-      try {
-        if (!Kubernetes.listIngress(namespace).getItems().isEmpty()) {
-          List<NetworkingV1beta1Ingress> items = Kubernetes.listIngress(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Ingress service still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Ingress list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list Ingress");
-      }
-
-      // check if ingress extensions exist
-      try {
-        if (!Kubernetes.listIngressExtensions(namespace).getItems().isEmpty()) {
-          List<ExtensionsV1beta1Ingress> items = Kubernetes.listIngressExtensions(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Ingress extensions still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Ingress extension list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list IngressExtensions");
-      }
-
-      // check if namespaced roles exist
-      try {
-        if (!Kubernetes.listNamespacedRole(namespace).getItems().isEmpty()) {
-          List<V1Role> items = Kubernetes.listNamespacedRole(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Namespaced roles still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Namespaced role list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list namespaced roles");
-      }
-
-      // check if namespaced role bindings exist
-      try {
-        if (!Kubernetes.listNamespacedRoleBinding(namespace).getItems().isEmpty()) {
-          List<V1RoleBinding> items = Kubernetes.listNamespacedRoleBinding(namespace).getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Namespaced role bindings still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Namespaced role bindings list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list namespaced role bindings");
-      }
-
-      // check if cluster roles exist
-      try {
-        if (!Kubernetes.listClusterRoles().getItems().isEmpty()) {
-          List<V1ClusterRole> items = Kubernetes.listClusterRoles().getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Cluster Roles still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Cluster Roles list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list cluster roles");
-      }
-
-      // check if cluster rolebindings exist
-      try {
-        if (!Kubernetes.listClusterRoleBindings().getItems().isEmpty()) {
-          List<V1RoleBinding> items = Kubernetes.listClusterRoleBindings().getItems();
-          items.forEach((item) -> {
-            debug(item.getMetadata().getName());
-          });
-          logger.info("Cluster RoleBings still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Cluster RoleBindings is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list Cluster Role Bindings");
-      }
-
-      // get namespaces
-      try {
-        if (Kubernetes.listNamespaces().contains(namespace)) {
-          List<String> items = Kubernetes.listNamespaces();
-          items.forEach((item) -> {
-            debug(item);
-          });
-          logger.info("Namespace still exists");
-          doesntExist = false;
-        } else {
-          logger.info("Namespace list is empty");
-        }
-      } catch (Exception ex) {
-        logger.warning(ex.getMessage());
-        logger.warning("Failed to list namespaces");
-      }
-
-      return doesntExist;
+      return listArtifacts(namespace);
     };
   }
 
