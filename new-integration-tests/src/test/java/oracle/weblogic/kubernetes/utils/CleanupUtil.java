@@ -43,13 +43,18 @@ public class CleanupUtil {
   public static final String OPERATOR_RELEASE_NAME = "weblogic-operator";
 
   /**
-   * Cleanup all artifacts in the Kubernetes cluster. Waits for the deletion to be completed until up to 3 minutes.
+   * Cleanup all artifacts in the Kubernetes cluster.
+   *
+   * <p>First it tries to do a graceful deletion of the domain and operator and then deletes everything else in the
+   * namespaces.
+   * 
+   * <p>Waits for the deletion to be completed until up to 3 minutes.
    *
    * @param namespaces list of namespaces
    */
   public static void cleanup(List<String> namespaces) {
     try {
-      // iterate through the namespaces and delete domain as a
+      // iterate through the namespaces and delete domain, as a
       // first entity if its not operator namespace
       for (var namespace : namespaces) {
         if (!isOperatorNamespace(namespace)) {
@@ -66,7 +71,6 @@ public class CleanupUtil {
 
       // uninstall ingress using helm
       // uninstall traefik using helm
-
       // Delete all the artifacts in the list of namespaces
       for (var namespace : namespaces) {
         deleteArtifacts(namespace);
@@ -95,6 +99,7 @@ public class CleanupUtil {
 
   /**
    * Delete domains.
+   *
    * @param namespace name of the namespace
    */
   private static void deleteDomains(String namespace) {
@@ -113,6 +118,7 @@ public class CleanupUtil {
 
   /**
    * Uninstalls the operator.
+   *
    * @param namespace name of the namespace
    */
   private static void uninstallOperator(String namespace) {
@@ -124,6 +130,7 @@ public class CleanupUtil {
 
   /**
    * Returns true if the namespace is operator namespace, otherwise false.
+   *
    * @param namespace name of the namespace
    * @return true if the namespace is operator namespace, otherwise false
    * @throws ApiException when Kubernetes cluster query fails
@@ -133,16 +140,28 @@ public class CleanupUtil {
   }
 
   /**
+   * Returns true if no artifacts exists in given namespace.
+   *
+   * @param namespace name of the namespace
+   * @return true if none of the artifacts exists, false otherwise
+   */
+  public static Callable<Boolean> artifactsDoesntExist(String namespace) {
+    return () -> {
+      return !artifactsExists(namespace);
+    };
+  }
+
+  /**
    * Returns true if artifacts exists in the Kubernetes cluster.
    *
    * @param namespace name of the namespace
    * @return true if at least one artifact exist otherwise false
    */
   public static boolean artifactsExists(String namespace) {
-    boolean doesntExist = true;
-    logger.info("Listing artifacts in namespace {0}\n", namespace);
+    boolean exist = false;
+    logger.info("Checking if artifacts exists in namespace {0}\n", namespace);
 
-    // Check if domain exists , exist only in domain namespace
+    // Check if domain exists , exists only in domain namespace
     try {
       if (!Kubernetes.listDomains(namespace).getItems().isEmpty()) {
         logger.info("Domain still exists");
@@ -150,7 +169,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("DomainList is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -159,7 +178,7 @@ public class CleanupUtil {
       logger.warning("Failed to list domains");
     }
 
-    // Check if the replica sets exist , exist only in operator namespace
+    // Check if the replica sets exist , exists only in operator namespace
     try {
       if (!Kubernetes.listReplicaSets(namespace).getItems().isEmpty()) {
         logger.info("ReplicaSets still exists");
@@ -167,7 +186,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("ReplicaSet is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -184,7 +203,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("JobList is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -201,7 +220,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("ConfigMap list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -218,7 +237,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Secret list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -245,7 +264,7 @@ public class CleanupUtil {
             items.forEach((item1) -> {
               debug(item1.getMetadata().getName());
             });
-            doesntExist = false;
+            exist = true;
           } else {
             logger.info("Persistent Volume List is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
           }
@@ -264,7 +283,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Deployment list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -281,7 +300,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Persistent Volume Claims list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -298,7 +317,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Services list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -315,7 +334,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Service Account list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -332,7 +351,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Ingress list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -349,7 +368,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Namespaced role list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -366,7 +385,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Namespaced role bindings list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -384,7 +403,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Cluster Roles list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -402,7 +421,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Cluster RoleBindings is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -419,7 +438,7 @@ public class CleanupUtil {
         items.forEach((item) -> {
           debug(item);
         });
-        doesntExist = false;
+        exist = true;
       } else {
         logger.info("Namespace list is empty!!!!!!!!!!!!!!!!!!!!!!!!!!");
       }
@@ -428,20 +447,8 @@ public class CleanupUtil {
       logger.warning("Failed to list namespaces");
     }
 
-    return doesntExist;
+    return exist;
 
-  }
-
-  /**
-   * Checks if the artifacts in given namespace still exists.
-   *
-   * @param namespace name of the namespace
-   * @return true if none of the artifacts exists, false otherwise
-   */
-  public static Callable<Boolean> artifactsDoesntExist(String namespace) {
-    return () -> {
-      return artifactsExists(namespace);
-    };
   }
 
   /**
@@ -455,10 +462,7 @@ public class CleanupUtil {
     // Delete all Domain objects in given namespace
     try {
       for (var item : Kubernetes.listDomains(namespace).getItems()) {
-        Kubernetes.deleteDomainCustomResource(
-            item.getMetadata().getLabels().get("weblogic.domainUID"),
-            namespace
-        );
+        Kubernetes.deleteDomainCustomResource(item.getMetadata().getName(), namespace);
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -513,10 +517,10 @@ public class CleanupUtil {
             .map(metadata -> metadata.getLabels())
             .map(labels -> labels.get("weblogic.domainUID")).get();
         if (label != null) {
-          for (var listPersistentVolume : Kubernetes
-              .listPersistentVolumes(String.format("weblogic.domainUID in (%s)", label))
+          for (var pv : Kubernetes
+              .listPersistentVolumes(String.format("weblogic.domainUID = (%s)", label))
               .getItems()) {
-            Kubernetes.deletePv(listPersistentVolume.getMetadata().getName());
+            Kubernetes.deletePv(pv.getMetadata().getName());
           }
         }
       }
@@ -545,6 +549,16 @@ public class CleanupUtil {
       logger.warning("Failed to cleanup persistent volume claims");
     }
 
+    // Delete services
+    try {
+      for (var item : Kubernetes.listServices(namespace).getItems()) {
+        Kubernetes.deleteService(item.getMetadata().getName(), namespace);
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup services");
+    }
+
     // Delete service accounts
     try {
       for (var item : Kubernetes.listServiceAccounts(namespace).getItems()) {
@@ -560,7 +574,6 @@ public class CleanupUtil {
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
       logger.warning("Failed to cleanup namespace");
-      debug("");
     }
 
   }
