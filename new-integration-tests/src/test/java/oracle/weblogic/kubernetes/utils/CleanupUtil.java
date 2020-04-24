@@ -40,14 +40,14 @@ public class CleanupUtil {
 
   private static ConditionFactory withStandardRetryPolicy = null;
   private static final boolean DEBUG = true;
-  public static final String OPERATOR_RELEASE_NAME = "weblogic-operator";
+  public static final String OPERATOR_RELEASE_NAME = "itoperator-op-1"; // "weblogic-operator";
 
   /**
    * Cleanup all artifacts in the Kubernetes cluster.
    *
    * <p>First it tries to do a graceful deletion of the domain and operator and then deletes everything else in the
    * namespaces.
-   * 
+   *
    * <p>Waits for the deletion to be completed until up to 3 minutes.
    *
    * @param namespaces list of namespaces
@@ -62,7 +62,7 @@ public class CleanupUtil {
         }
       }
       // iterate through the namespaces and delete operator if
-      // its operator namespace
+      // its operator namespace.
       for (var namespace : namespaces) {
         if (isOperatorNamespace(namespace)) {
           uninstallOperator(namespace);
@@ -517,8 +517,9 @@ public class CleanupUtil {
             .map(metadata -> metadata.getLabels())
             .map(labels -> labels.get("weblogic.domainUID")).get();
         if (label != null) {
+          logger.info("Deleting all Persistent Volumes with label weblogic.domainUID: {0}", label);
           for (var pv : Kubernetes
-              .listPersistentVolumes(String.format("weblogic.domainUID = (%s)", label))
+              .listPersistentVolumes(String.format("weblogic.domainUID = %s", label))
               .getItems()) {
             Kubernetes.deletePv(pv.getMetadata().getName());
           }
@@ -557,6 +558,46 @@ public class CleanupUtil {
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
       logger.warning("Failed to cleanup services");
+    }
+
+    // Delete cluster roles
+    try {
+      for (var item : Kubernetes.listClusterRoles("weblogic.operatorName").getItems()) {
+        Kubernetes.deleteClusterRole(item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup cluster roles");
+    }
+
+    // Delete cluster rolebindings
+    try {
+      for (var item : Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems()) {
+        Kubernetes.deleteClusterRoleBinding(item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup cluster rolebindings");
+    }
+
+    // Delete namespaced roles
+    try {
+      for (var item : Kubernetes.listNamespacedRole(namespace).getItems()) {
+        Kubernetes.deleteNamespacedRole(namespace, item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup namespaced roles");
+    }
+
+    // Delete namespaced role bindings
+    try {
+      for (var item : Kubernetes.listNamespacedRoleBinding(namespace).getItems()) {
+        Kubernetes.deleteNamespacedRoleBinding(namespace, item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to cleanup namespaced rolebindings");
     }
 
     // Delete service accounts

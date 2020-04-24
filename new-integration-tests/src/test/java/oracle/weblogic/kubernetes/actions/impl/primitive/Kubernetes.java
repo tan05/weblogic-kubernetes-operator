@@ -1564,38 +1564,6 @@ public class Kubernetes implements LoggedTest {
   }
 
   /**
-   * List role bindings in a given name space.
-   *
-   * @param namespace name of the namespace
-   * @return V1RoleBindingList list of V1RoleBinding objects
-   * @throws ApiException when listing fails
-   */
-  public static V1RoleBindingList listNamespacedRoleBinding(String namespace) throws ApiException {
-    V1RoleBindingList roleBindings;
-    try {
-      roleBindings = rbacAuthApi.listNamespacedRoleBinding(
-          namespace,
-          PRETTY,
-          ALLOW_WATCH_BOOKMARKS,
-          null,
-          null,
-          null,
-          null,
-          RESOURCE_VERSION,
-          TIMEOUT_SECONDS,
-          ALLOW_WATCH_BOOKMARKS
-      );
-      if (VERBOSE) {
-        logger.info(dump(roleBindings));
-      }
-    } catch (ApiException apex) {
-      logger.warning(apex.getResponseBody());
-      throw apex;
-    }
-    return roleBindings;
-  }
-
-  /**
    * List cluster role bindings.
    *
    * @param labelSelector labels to narrow the list
@@ -1629,17 +1597,44 @@ public class Kubernetes implements LoggedTest {
   }
 
   /**
-   * List roles in a given namespace.
+   * Delete role in the given namespace.
    *
    * @param namespace name of the namespace
-   * @return V1RoleList list of V1Role object
+   * @param name name of the role
    * @throws ApiException when listing fails
    */
-  public static V1RoleList listNamespacedRole(String namespace) throws ApiException {
-    V1RoleList roles;
-
+  public static void deleteNamespacedRoleBinding(String namespace, String name) throws ApiException {
     try {
-      roles = rbacAuthApi.listNamespacedRole(
+      V1Status status = rbacAuthApi.deleteNamespacedRoleBinding(
+          name,
+          namespace,
+          PRETTY,
+          null,
+          GRACE_PERIOD,
+          null,
+          FOREGROUND,
+          null
+      );
+      if (VERBOSE) {
+        logger.info(dump(status));
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+  }
+
+  /**
+   * List role bindings in a given name space.
+   *
+   * @param namespace name of the namespace
+   * @return V1RoleBindingList list of V1RoleBinding objects
+   * @throws ApiException when listing fails
+   */
+  public static V1RoleBindingList listNamespacedRoleBinding(String namespace) throws ApiException {
+    V1RoleBindingList roleBindings;
+    try {
+      roleBindings = rbacAuthApi.listNamespacedRoleBinding(
           namespace,
           PRETTY,
           ALLOW_WATCH_BOOKMARKS,
@@ -1652,15 +1647,43 @@ public class Kubernetes implements LoggedTest {
           ALLOW_WATCH_BOOKMARKS
       );
       if (VERBOSE) {
-        logger.info(dump(roles));
+        logger.info(dump(roleBindings));
       }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
     }
-
-    return roles;
+    return roleBindings;
   }
+
+
+  /**
+   * Delete role in the Kubernetes cluster.
+   *
+   * @param name name of the cluster role to delete
+   * @throws ApiException when listing fails
+   */
+  public static void deleteClusterRole(String name) throws ApiException {
+    logger.info("Deleting cluster role {0}", name);
+    try {
+      V1Status status = rbacAuthApi.deleteClusterRole(
+          name,
+          PRETTY,
+          null,
+          GRACE_PERIOD,
+          null,
+          FOREGROUND,
+          deleteOptions
+      );
+      if (VERBOSE) {
+        logger.info(dump(status));
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+  }
+
 
   /**
    * List roles in the Kubernetes cluster.
@@ -1678,6 +1701,69 @@ public class Kubernetes implements LoggedTest {
           null,
           null,
           labelSelector,
+          null,
+          RESOURCE_VERSION,
+          TIMEOUT_SECONDS,
+          ALLOW_WATCH_BOOKMARKS
+      );
+      if (VERBOSE) {
+        logger.info(dump(roles));
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+
+    return roles;
+  }
+
+  /**
+   * Delete role in the Kubernetes cluster namespace.
+   *
+   * @param namespace name of the namespace
+   * @param name name of the role to delete
+   * @throws ApiException when delete fails
+   */
+  public static void deleteNamespacedRole(String namespace, String name) throws ApiException {
+    logger.info("Deleting cluster role {0} in namespace {1}", name, namespace);
+    try {
+      V1Status status = rbacAuthApi.deleteNamespacedRole(
+          name,
+          namespace,
+          PRETTY,
+          null,
+          GRACE_PERIOD,
+          null,
+          FOREGROUND,
+          null
+      );
+      if (VERBOSE) {
+        logger.info(dump(status));
+      }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+  }
+
+  /**
+   * List roles in a given namespace.
+   *
+   * @param namespace name of the namespace
+   * @return V1RoleList list of V1Role object
+   * @throws ApiException when listing fails
+   */
+  public static V1RoleList listNamespacedRole(String namespace) throws ApiException {
+    V1RoleList roles;
+
+    try {
+      roles = rbacAuthApi.listNamespacedRole(
+          namespace,
+          PRETTY,
+          ALLOW_WATCH_BOOKMARKS,
+          null,
+          null,
+          null,
           null,
           RESOURCE_VERSION,
           TIMEOUT_SECONDS,
