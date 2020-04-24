@@ -22,6 +22,7 @@ import io.kubernetes.client.openapi.models.V1Secret;
 import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServiceAccount;
 import oracle.weblogic.domain.Domain;
+import oracle.weblogic.kubernetes.TestConstants;
 import oracle.weblogic.kubernetes.actions.TestActions;
 import oracle.weblogic.kubernetes.actions.impl.primitive.HelmParams;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
@@ -68,9 +69,10 @@ public class CleanupUtil {
         }
       }
 
-      // uninstall ingress using helm
       // uninstall traefik using helm
-      // Delete all the artifacts in the list of namespaces
+      // Delete all the artifacts in the list of namespaces.
+      // This will cleanup everything regardless of the domain
+      // is deleted and operator is uninstalled
       for (var namespace : namespaces) {
         deleteArtifacts(namespace);
       }
@@ -122,7 +124,7 @@ public class CleanupUtil {
    */
   private static void uninstallOperator(String namespace) {
     HelmParams opHelmParams = new HelmParams()
-        .releaseName("itoperator-op-1") // Use TestConstants.OPERATOR_RELEASE_NAME
+        .releaseName(TestConstants.OPERATOR_RELEASE_NAME)
         .namespace(namespace);
     TestActions.uninstallOperator(opHelmParams);
   }
