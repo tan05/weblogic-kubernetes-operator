@@ -346,19 +346,19 @@ public class CleanupUtil {
 
     // check if ingress exist
     try {
-      if (!Kubernetes.listIngress(namespace).getItems().isEmpty()) {
-        logger.info("Ingress resources still exists!!!");
+      if (!Kubernetes.listIngressExtensions(namespace).getItems().isEmpty()) {
+        logger.info("Ingress Extensions still exists!!!");
         List<NetworkingV1beta1Ingress> items = Kubernetes.listIngress(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
         exist = true;
       } else {
-        logger.info("Ingress list is empty");
+        logger.info("Ingress Extensions list is empty");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
-      logger.warning("Failed to list Ingress");
+      logger.warning("Failed to list Ingress Extensions");
     }
 
     // check if namespaced roles exist
