@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import oracle.weblogic.kubernetes.annotations.Namespaces;
@@ -320,6 +321,8 @@ public class IntegrationTestWatcher implements
    * @param failedStage the stage in which the test failed
    */
   private void collectLogs(ExtensionContext extensionContext, String failedStage) {
+    String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
+    namespaces = Arrays.asList(ns); //remove after debug
     logger.info("Collecting logs...");
     if (namespaces == null || namespaces.isEmpty()) {
       logger.warning("Namespace list is empty, "

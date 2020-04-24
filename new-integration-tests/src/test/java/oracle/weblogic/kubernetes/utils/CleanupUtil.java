@@ -386,7 +386,7 @@ public class CleanupUtil {
         });
         exist = true;
       } else {
-        logger.info("Namespaced role bindings list is empty!!!");
+        logger.info("Namespaced role bindings list is empty");
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
