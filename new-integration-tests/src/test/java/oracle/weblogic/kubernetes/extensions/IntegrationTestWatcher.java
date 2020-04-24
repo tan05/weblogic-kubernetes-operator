@@ -62,7 +62,7 @@ public class IntegrationTestWatcher implements
   /**
    * Directory to store logs.
    */
-  private static final String LOGS_DIR = System.getProperty("RESULT_ROOT",
+  private static final String LOGS_DIR = System.getenv().getOrDefault("RESULT_ROOT",
         System.getProperty("java.io.tmpdir"));
 
   /**
