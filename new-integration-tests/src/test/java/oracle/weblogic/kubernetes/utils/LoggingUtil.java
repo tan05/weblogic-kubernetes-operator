@@ -27,31 +27,27 @@ public class LoggingUtil {
    * Directory to store logs.
    */
   private static final String LOGS_DIR = System.getProperty("RESULT_ROOT",
-        System.getProperty("java.io.tmpdir"));
+      System.getProperty("java.io.tmpdir"));
 
   /**
    * Collect logs for artifacts in Kubernetes cluster for current running test object. This method can be called
    * anywhere in the test by passing the test instance object and list namespaces.
-   * 
-   * <p>The collected logs are written in the LOGS_DIR/IT_TEST_CLASSNAME/CURRENT_TIMESTAMP directory.
+   *
+   * <p>
+   * The collected logs are written in the LOGS_DIR/IT_TEST_CLASSNAME/CURRENT_TIMESTAMP directory.
    *
    * @param itInstance the integration test instance
    * @param namespaces list of namespaces used by the test instance
    */
-  public static void collectLogs(Object itInstance, List namespaces) {
+  public static void collectLogs(Object itInstance, List namespaces) throws IOException {
     logger.info("Collecting logs...");
     String resultDirExt = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-    try {
-      Path resultDir = Files.createDirectories(
-          Paths.get(LOGS_DIR, itInstance.getClass().getSimpleName(),
-              resultDirExt));
-      for (var namespace : namespaces) {
-        LoggingUtil.generateLog((String) namespace, resultDir);
-      }
-    } catch (IOException ex) {
-      logger.warning(ex.getMessage());
-    } catch (ApiException ex) {
-      logger.warning(ex.getResponseBody());
+
+    Path resultDir = Files.createDirectories(
+        Paths.get(LOGS_DIR, itInstance.getClass().getSimpleName(),
+            resultDirExt));
+    for (var namespace : namespaces) {
+      LoggingUtil.generateLog((String) namespace, resultDir);
     }
   }
 
@@ -63,63 +59,102 @@ public class LoggingUtil {
    * @throws IOException when writing to log files fail
    * @throws ApiException when Kubernetes cluster query fails
    */
-  public static void generateLog(String namespace, Path resultDir) throws IOException, ApiException {
+  public static void generateLog(String namespace, Path resultDir) {
     logger.info("Collecting logs in namespace : {0}", namespace);
 
     // get service accounts
-    writeToFile(Kubernetes.listServiceAccounts(namespace), resultDir.toString(), namespace + "_sa.log");
+    try {
+      writeToFile(Kubernetes.listServiceAccounts(namespace), resultDir.toString(), namespace + "_sa.log");
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+    }
 
     // get namespaces
-    for (var ns: Kubernetes.listNamespacesAsObjects().getItems()) {
-      if (namespace.equals(ns.getMetadata().getName())) {
-        writeToFile(ns, resultDir.toString(), namespace + "_ns.log");
+    try {
+      for (var ns : Kubernetes.listNamespacesAsObjects().getItems()) {
+        if (namespace.equals(ns.getMetadata().getName())) {
+          writeToFile(ns, resultDir.toString(), namespace + "_ns.log");
+        }
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
     }
 
     // get pvc
-    writeToFile(Kubernetes.listPersistentVolumeClaims(namespace), resultDir.toString(), namespace + "_pvc.log");
+    try {
+      writeToFile(Kubernetes.listPersistentVolumeClaims(namespace), resultDir.toString(), namespace + "_pvc.log");
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+    }
 
     // get pv based on the weblogic.domainUID in pvc
-    for (var pvc : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-      if (pvc.getMetadata() != null
-          && pvc.getMetadata().getLabels() != null
-          && pvc.getMetadata().getLabels().get("weblogic.domainUID") != null) {
-        String label = pvc.getMetadata().getLabels().get("weblogic.domainUID");
-        writeToFile(Kubernetes.listPersistentVolumes(
-            String.format("weblogic.domainUID in (%s)", label)), resultDir.toString(), label + "_pv.log");
+    try {
+      for (var pvc : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+        if (pvc.getMetadata() != null
+            && pvc.getMetadata().getLabels() != null
+            && pvc.getMetadata().getLabels().get("weblogic.domainUID") != null) {
+          String label = pvc.getMetadata().getLabels().get("weblogic.domainUID");
+          writeToFile(Kubernetes.listPersistentVolumes(
+              String.format("weblogic.domainUID in (%s)", label)), resultDir.toString(), label + "_pv.log");
+        }
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
     }
 
     // get secrets
-    writeToFile(Kubernetes.listSecrets(namespace), resultDir.toString(), namespace + "_secrets.log");
+    try {
+      writeToFile(Kubernetes.listSecrets(namespace), resultDir.toString(), namespace + "_secrets.log");
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+    }
 
     // get configmaps
-    writeToFile(Kubernetes.listConfigMaps(namespace), resultDir.toString(), namespace + "_cm.log");
+    try {
+      writeToFile(Kubernetes.listConfigMaps(namespace), resultDir.toString(), namespace + "_cm.log");
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+    }
 
     // get jobs
-    writeToFile(Kubernetes.listJobs(namespace), resultDir.toString(), namespace + "_jobs.log");
+    try {
+      writeToFile(Kubernetes.listJobs(namespace), resultDir.toString(), namespace + "_jobs.log");
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+    }
 
     // get deployments
-    writeToFile(Kubernetes.listDeployments(namespace), resultDir.toString(), namespace + "_deploy.log");
+    try {
+      writeToFile(Kubernetes.listDeployments(namespace), resultDir.toString(), namespace + "_deploy.log");
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+    }
 
     // get replicasets
-    writeToFile(Kubernetes.listReplicaSets(namespace), resultDir.toString(), namespace + "_rs.log");
+    try {
+      writeToFile(Kubernetes.listReplicaSets(namespace), resultDir.toString(), namespace + "_rs.log");
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+    }
 
+    // get domain objects in the given namespace
     try {
       writeToFile(Kubernetes.listDomains(namespace), resultDir.toString(), namespace + "_domains.log");
     } catch (Exception ex) {
       logger.warning("Listing domain failed, not collecting any data for domain");
     }
-    // get all Domain objects in given namespace
-
 
     // get domain/operator pods
-    for (var pod : Kubernetes.listPods(namespace, null).getItems()) {
-      if (pod.getMetadata() != null) {
-        writeToFile(Kubernetes.getPodLog(pod.getMetadata().getName(), namespace),
-            resultDir.toString(),
-            namespace + "_" + pod.getMetadata().getName() + ".log");
+    try {
+      for (var pod : Kubernetes.listPods(namespace, null).getItems()) {
+        if (pod.getMetadata() != null) {
+          writeToFile(Kubernetes.getPodLog(pod.getMetadata().getName(), namespace),
+              resultDir.toString(),
+              namespace + "_" + pod.getMetadata().getName() + ".log");
+        }
       }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
     }
   }
 
