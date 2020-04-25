@@ -16,8 +16,10 @@ import java.util.List;
 import java.util.Set;
 
 import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
+import io.kubernetes.client.openapi.models.V1Pod;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 
+import static oracle.weblogic.kubernetes.assertions.impl.Kubernetes.isPodRunning;
 import static io.kubernetes.client.util.Yaml.dump;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
 
@@ -96,7 +98,6 @@ public class LoggingUtil {
     // get pv based on the weblogic.domainUID label in pvc
     try {
       for (var pvc : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-
         if (pvc.getMetadata() != null
             && pvc.getMetadata().getLabels() != null
             && pvc.getMetadata().getLabels().get("weblogic.domainUID") != null) {
@@ -115,7 +116,21 @@ public class LoggingUtil {
           });
           for (String path : paths) {
             logger.info("PV Path :{0}", path);
-            //Kubernetes.copyDirectoryFromPod(pod, label, resultDir);
+            V1Pod pvPod = null;
+            try {
+              pvPod = Kubernetes.createPVPod(namespace, pvc.getMetadata().getName());
+              if (isPodRunning("pv-pod", null, namespace)) {
+                Kubernetes.copyDirectoryFromPod(pvPod, path, resultDir);
+                Kubernetes.deletePVPod(namespace);
+                pvPod = null;
+              }
+            } catch (Exception ex) {
+              logger.severe(ex.getMessage());
+            } finally {
+              if (pvPod != null) {
+                Kubernetes.deletePVPod(namespace);
+              }
+            }
           }
         }
       }

@@ -46,6 +46,7 @@ import io.kubernetes.client.openapi.models.V1ObjectMetaBuilder;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimList;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimVolumeSource;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
@@ -61,6 +62,7 @@ import io.kubernetes.client.openapi.models.V1ServiceAccount;
 import io.kubernetes.client.openapi.models.V1ServiceAccountList;
 import io.kubernetes.client.openapi.models.V1ServiceList;
 import io.kubernetes.client.openapi.models.V1Status;
+import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.util.ClientBuilder;
 import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainList;
@@ -1841,31 +1843,52 @@ public class Kubernetes implements LoggedTest {
 
 
   /**
-   * Create pod.
+   * Create a nginx pod named "pv-pod".
+   *
    * @param namespace name of the namespace
+   * @param claimName persistent volume claim name
    * @return V1Pod object
    * @throws ApiException when create pod fails
    */
-  public static V1Pod createPod(String namespace) throws ApiException {
+  public static V1Pod createPVPod(String namespace, String claimName) throws ApiException {
 
-    V1ObjectMeta meta = new V1ObjectMeta();
-    meta.name("PVPod");
+    V1Pod pod = new V1Pod()
+        .spec(new V1PodSpec()
+            .containers(Arrays.asList(
+                new V1Container().name("pv-container").image("nginx").imagePullPolicy("IfNotPresent")))
+            .volumes(Arrays.asList(
+                new V1Volume().name("pv-pod-volume").persistentVolumeClaim(
+                    new V1PersistentVolumeClaimVolumeSource().claimName(claimName)))))
+        .metadata(new V1ObjectMeta().name("pv-pod"))
+        .apiVersion("v1")
+        .kind("Pod");
 
-    V1Container container = new V1Container();
-    container.name("PVContainer");
-    container.image("ubuntu");
-    container.imagePullPolicy("IfNotPresent");
+    return coreV1Api.createNamespacedPod(namespace, pod, null, null, null);
+  }
 
-    V1PodSpec spec = new V1PodSpec();
-    spec.containers(Arrays.asList(container));
-
-    V1Pod podBody = new V1Pod();
-    podBody.apiVersion("v1");
-    podBody.kind("Pod");
-    podBody.metadata(meta);
-    podBody.spec(spec);
-
-    return coreV1Api.createNamespacedPod(namespace, podBody, null, null, null);
+  /**
+   * Delete the PV collector pod.
+   *
+   * @param namespace name of the namespace
+   * @param name pod name
+   * @throws ApiException when delete fails
+   */
+  public static void deletePVPod(String namespace) throws ApiException {
+    try {
+      coreV1Api.deleteNamespacedPod(
+          "pv-pod",
+          namespace,
+          PRETTY,
+          null,
+          GRACE_PERIOD,
+          null,
+          FOREGROUND,
+          null
+      );
+    } catch (ApiException apex) {
+      logger.severe(apex.getResponseBody());
+      throw apex;
+    }
   }
 
 }
