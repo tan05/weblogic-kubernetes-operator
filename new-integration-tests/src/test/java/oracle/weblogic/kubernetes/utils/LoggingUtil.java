@@ -9,11 +9,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-
-import io.kubernetes.client.openapi.ApiException;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 
 import static io.kubernetes.client.util.Yaml.dump;
@@ -62,8 +64,6 @@ public class LoggingUtil {
    *
    * @param namespace in which to query cluster for artifacts
    * @param resultDir existing directory to write log files
-   * @throws IOException when writing to log files fail
-   * @throws ApiException when Kubernetes cluster query fails
    */
   public static void generateLog(String namespace, Path resultDir) {
     logger.info("Collecting logs in namespace : {0}", namespace);
@@ -93,15 +93,30 @@ public class LoggingUtil {
       logger.warning(ex.getMessage());
     }
 
-    // get pv based on the weblogic.domainUID in pvc
+    // get pv based on the weblogic.domainUID label in pvc
     try {
       for (var pvc : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
+
         if (pvc.getMetadata() != null
             && pvc.getMetadata().getLabels() != null
             && pvc.getMetadata().getLabels().get("weblogic.domainUID") != null) {
           String label = pvc.getMetadata().getLabels().get("weblogic.domainUID");
-          writeToFile(Kubernetes.listPersistentVolumes(
-              String.format("weblogic.domainUID in (%s)", label)), resultDir.toString(), label + "_pv.log");
+
+          // get the pvs based on label weblogic.domainUID
+          V1PersistentVolumeList pvList = Kubernetes.listPersistentVolumes(
+              String.format("weblogic.domainUID = %s", label)
+          );
+          writeToFile(pvList, resultDir.toString(), label + "_pv.log");
+
+          // extract the hostPath from PV
+          Set<String> paths = new HashSet();
+          pvList.getItems().forEach((item) -> {
+            paths.add(item.getSpec().getHostPath().getPath());
+          });
+          for (String path : paths) {
+            logger.info("PV Path :{0}", path);
+            //Kubernetes.copyDirectoryFromPod(pod, label, resultDir);
+          }
         }
       }
     } catch (Exception ex) {

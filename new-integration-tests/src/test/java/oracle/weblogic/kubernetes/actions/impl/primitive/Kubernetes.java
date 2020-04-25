@@ -4,12 +4,15 @@
 package oracle.weblogic.kubernetes.actions.impl.primitive;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import io.kubernetes.client.Copy;
 import io.kubernetes.client.custom.V1Patch;
 import io.kubernetes.client.extended.generic.GenericKubernetesApi;
 import io.kubernetes.client.extended.generic.KubernetesApiResponse;
@@ -30,6 +33,7 @@ import io.kubernetes.client.openapi.models.V1ClusterRoleBindingList;
 import io.kubernetes.client.openapi.models.V1ClusterRoleList;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1ConfigMapList;
+import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1DeploymentList;
 import io.kubernetes.client.openapi.models.V1Job;
@@ -45,6 +49,7 @@ import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimList;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
+import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1ReplicaSet;
 import io.kubernetes.client.openapi.models.V1ReplicaSetList;
 import io.kubernetes.client.openapi.models.V1RoleBindingList;
@@ -79,7 +84,7 @@ public class Kubernetes implements LoggedTest {
   private static String FOREGROUND = "Foreground";
   private static String BACKGROUND = "Background";
   private static int GRACE_PERIOD = 0;
-  private static final boolean VERBOSE = true;
+  private static final boolean VERBOSE = false;
 
   // Core Kubernetes API clients
   private static ApiClient apiClient = null;
@@ -1818,5 +1823,49 @@ public class Kubernetes implements LoggedTest {
     return null;
   }
 
-  //------------------------
+  // --------------------------- Copy   ---------------------------
+
+  /**
+   * Copy a directory from Kubernetes pod to destination path.
+   * @param pod V1Pod object
+   * @param srcPath source directory location
+   * @param destination destination directory path
+   * @throws IOException when copy fails
+   * @throws ApiException when pod interaction fails
+   */
+  public static void copyDirectoryFromPod(V1Pod pod, String srcPath, Path destination)
+      throws IOException, ApiException {
+    Copy copy = new Copy();
+    copy.copyDirectoryFromPod(pod, srcPath, destination);
+  }
+
+
+  /**
+   * Create pod.
+   * @param namespace name of the namespace
+   * @return V1Pod object
+   * @throws ApiException when create pod fails
+   */
+  public static V1Pod createPod(String namespace) throws ApiException {
+
+    V1ObjectMeta meta = new V1ObjectMeta();
+    meta.name("PVPod");
+
+    V1Container container = new V1Container();
+    container.name("PVContainer");
+    container.image("ubuntu");
+    container.imagePullPolicy("IfNotPresent");
+
+    V1PodSpec spec = new V1PodSpec();
+    spec.containers(Arrays.asList(container));
+
+    V1Pod podBody = new V1Pod();
+    podBody.apiVersion("v1");
+    podBody.kind("Pod");
+    podBody.metadata(meta);
+    podBody.spec(spec);
+
+    return coreV1Api.createNamespacedPod(namespace, podBody, null, null, null);
+  }
+
 }
