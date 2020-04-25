@@ -1870,7 +1870,6 @@ public class Kubernetes implements LoggedTest {
    * Delete the PV collector pod.
    *
    * @param namespace name of the namespace
-   * @param name pod name
    * @throws ApiException when delete fails
    */
   public static void deletePVPod(String namespace) throws ApiException {

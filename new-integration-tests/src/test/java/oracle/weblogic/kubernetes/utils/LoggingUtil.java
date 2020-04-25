@@ -19,8 +19,8 @@ import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 
-import static oracle.weblogic.kubernetes.assertions.impl.Kubernetes.isPodRunning;
 import static io.kubernetes.client.util.Yaml.dump;
+import static oracle.weblogic.kubernetes.assertions.impl.Kubernetes.isPodRunning;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
 
 /**
