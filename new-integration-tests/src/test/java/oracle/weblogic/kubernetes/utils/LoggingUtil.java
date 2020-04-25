@@ -26,8 +26,8 @@ public class LoggingUtil {
   /**
    * Directory to store logs.
    */
-  private static final String LOGS_DIR = System.getProperty("RESULT_ROOT",
-      System.getProperty("java.io.tmpdir"));
+  private static final String LOGS_DIR = System.getenv().getOrDefault("RESULT_ROOT",
+        System.getProperty("java.io.tmpdir"));
 
   /**
    * Collect logs for artifacts in Kubernetes cluster for current running test object. This method can be called
@@ -38,15 +38,20 @@ public class LoggingUtil {
    * @param itInstance the integration test instance
    * @param namespaces list of namespaces used by the test instance
    */
-  public static void collectLogs(Object itInstance, List namespaces) throws IOException {
+  public static void collectLogs(Object itInstance, List namespaces) {
     logger.info("Collecting logs...");
     String resultDirExt = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
 
-    Path resultDir = Files.createDirectories(
-        Paths.get(LOGS_DIR, itInstance.getClass().getSimpleName(),
-            resultDirExt));
-    for (var namespace : namespaces) {
-      LoggingUtil.generateLog((String) namespace, resultDir);
+    Path resultDir;
+    try {
+      resultDir = Files.createDirectories(
+          Paths.get(LOGS_DIR, itInstance.getClass().getSimpleName(),
+              resultDirExt));
+      for (var namespace : namespaces) {
+        LoggingUtil.generateLog((String) namespace, resultDir);
+      }
+    } catch (IOException ex) {
+      logger.severe(ex.getMessage());
     }
   }
 

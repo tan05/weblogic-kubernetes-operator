@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.models.NetworkingV1beta1Ingress;
+import io.kubernetes.client.openapi.models.ExtensionsV1beta1Ingress;
 import io.kubernetes.client.openapi.models.V1ClusterRole;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1Deployment;
@@ -348,7 +348,7 @@ public class CleanupUtil {
     try {
       if (!Kubernetes.listIngressExtensions(namespace).getItems().isEmpty()) {
         logger.info("Ingress Extensions still exists!!!");
-        List<NetworkingV1beta1Ingress> items = Kubernetes.listIngress(namespace).getItems();
+        List<ExtensionsV1beta1Ingress> items = Kubernetes.listIngressExtensions(namespace).getItems();
         items.forEach((item) -> {
           debug(item.getMetadata().getName());
         });
