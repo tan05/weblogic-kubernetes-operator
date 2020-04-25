@@ -63,6 +63,7 @@ import io.kubernetes.client.openapi.models.V1ServiceAccountList;
 import io.kubernetes.client.openapi.models.V1ServiceList;
 import io.kubernetes.client.openapi.models.V1Status;
 import io.kubernetes.client.openapi.models.V1Volume;
+import io.kubernetes.client.openapi.models.V1VolumeMount;
 import io.kubernetes.client.util.ClientBuilder;
 import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainList;
@@ -1855,13 +1856,21 @@ public class Kubernetes implements LoggedTest {
     V1Pod pod = new V1Pod()
         .spec(new V1PodSpec()
             .containers(Arrays.asList(
-                new V1Container().name("pv-container").image("nginx").imagePullPolicy("IfNotPresent")))
+                new V1Container()
+                    .name("pv-container")
+                    .image("nginx")
+                    .imagePullPolicy("IfNotPresent")
+                    .volumeMounts(Arrays.asList(
+                        new V1VolumeMount()
+                            .mountPath("/sharedpv")
+                            .name("pvpod-mount")))))
             .volumes(Arrays.asList(
                 new V1Volume().name("pv-pod-volume").persistentVolumeClaim(
                     new V1PersistentVolumeClaimVolumeSource().claimName(claimName)))))
         .metadata(new V1ObjectMeta().name("pv-pod"))
         .apiVersion("v1")
         .kind("Pod");
+    logger.warning(dump(pod));
 
     return coreV1Api.createNamespacedPod(namespace, pod, null, null, null);
   }
