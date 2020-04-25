@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import oracle.weblogic.kubernetes.annotations.Namespaces;
+import oracle.weblogic.kubernetes.utils.CleanupUtil;
 import oracle.weblogic.kubernetes.utils.LoggingUtil;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -296,8 +297,10 @@ public class IntegrationTestWatcher implements
   @Override
   public void afterAll(ExtensionContext context) {
     printHeader(String.format("Ending Test Suite %s", className), "+");
-    //logger.info("Starting test suite cleanup");
-    //CleanupUtil.cleanup(namespaces);
+    String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
+    namespaces = Arrays.asList(ns); //remove after debug
+    logger.info("Starting test suite cleanup");
+    CleanupUtil.cleanup(namespaces);
   }
 
 

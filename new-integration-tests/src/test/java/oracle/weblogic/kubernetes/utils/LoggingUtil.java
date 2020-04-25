@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 
 import io.kubernetes.client.openapi.ApiException;
+import java.util.Arrays;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 
 import static io.kubernetes.client.util.Yaml.dump;
@@ -39,9 +40,10 @@ public class LoggingUtil {
    * @param namespaces list of namespaces used by the test instance
    */
   public static void collectLogs(Object itInstance, List namespaces) {
+    String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
+    namespaces = Arrays.asList(ns); //remove after debug
     logger.info("Collecting logs...");
     String resultDirExt = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-
     Path resultDir;
     try {
       resultDir = Files.createDirectories(

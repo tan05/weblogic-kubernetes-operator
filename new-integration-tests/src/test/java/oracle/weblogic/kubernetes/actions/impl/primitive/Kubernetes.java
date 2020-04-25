@@ -79,7 +79,7 @@ public class Kubernetes implements LoggedTest {
   private static String FOREGROUND = "Foreground";
   private static String BACKGROUND = "Background";
   private static int GRACE_PERIOD = 0;
-  private static final boolean VERBOSE = false;
+  private static final boolean VERBOSE = true;
 
   // Core Kubernetes API clients
   private static ApiClient apiClient = null;
