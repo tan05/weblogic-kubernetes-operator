@@ -125,12 +125,19 @@ public class LoggingUtil {
         for (var pv : pvList.getItems()) {
           String claimName = pvc.getMetadata().getName();
           String pvName = pv.getMetadata().getName();
-          copy(namespace, claimName,
-              Files.createDirectories(
-                  Paths.get(resultDir.toString(), claimName, pvName)));
+          try {
+            copy(namespace, claimName,
+                Files.createDirectories(
+                    Paths.get(resultDir.toString(), claimName, pvName)));
+          } catch (ApiException apex) {
+            logger.warning(apex.getResponseBody());
+          } catch (Exception ex) {
+            logger.warning(ex.getMessage());
+          }
         }
         logger.info("Done iterating through the pvs");
       }
+      logger.info("Done iterating through the pvs");
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
     } catch (Exception ex) {
