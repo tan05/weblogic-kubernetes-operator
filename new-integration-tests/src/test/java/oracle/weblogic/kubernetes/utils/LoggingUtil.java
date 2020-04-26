@@ -241,7 +241,7 @@ public class LoggingUtil {
             break;
           } else {
             logger.info("Waiting for the copy from pv to be complete, "
-                + "elapsed time({0}), remaining time({1})", elapsedtime, 60 - elapsedtime);
+                + "elapsed time({0} seconds), remaining time({1} seconds)", elapsedtime, 60 - elapsedtime);
           }
           Thread.sleep(15 * 1000);
           elapsedtime += 15;
