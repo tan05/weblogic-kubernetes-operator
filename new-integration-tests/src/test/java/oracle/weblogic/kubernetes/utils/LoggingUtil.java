@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import io.kubernetes.client.openapi.ApiException;
@@ -105,60 +106,32 @@ public class LoggingUtil {
       logger.warning(ex.getMessage());
     }
 
-    // get pv based on the weblogic.domainUID label in pvc
+    // get pv configuration and pv files based on the weblogic.domainUID label in pvc
     try {
       for (var pvc : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
-        if (pvc.getMetadata() != null
-            && pvc.getMetadata().getLabels() != null
-            && pvc.getMetadata().getLabels().get("weblogic.domainUID") != null) {
-          String label = pvc.getMetadata().getLabels().get("weblogic.domainUID");
+        String label = Optional.ofNullable(pvc)
+            .map(metadata -> metadata.getMetadata())
+            .map(labels -> labels.getLabels())
+            .map(labels -> labels.get("weblogic.domainUID")).get();
 
-          // get the pvs based on label weblogic.domainUID
-          V1PersistentVolumeList pvList = Kubernetes
-              .listPersistentVolumes(String.format("weblogic.domainUID = %s", label));
-          // write the pv descriptions
-          writeToFile(pvList, resultDir.toString(), label + "_pv.log");
+        // get the persistent volumes based on label weblogic.domainUID
+        V1PersistentVolumeList pvList = Kubernetes
+            .listPersistentVolumes(String.format("weblogic.domainUID = %s", label));
+        // write the persistent volume configurations to log
+        writeToFile(pvList, resultDir.toString(), label + "_pv.log");
 
-          // dump files stored in persistent volumes to
-          // RESULT_DIR/PVC_NAME/PV_NAME location
-          for (var item : pvList.getItems()) {
-            String claimName = pvc.getMetadata().getName();
-            String pvName = item.getMetadata().getName();
-            Path destinationPath = Paths.get(resultDir.toString(), claimName, pvName);
-            Files.createDirectories(destinationPath);
-            V1Pod pvPod = null;
-            try {
-              // create a temp pod and mount pv for copying weblogic domain config, logs, applications etc.
-              pvPod = createPVPod(namespace, claimName);
-              // there is currently a bug in the copy API which prevents i/o stream left open
-              // and copy command not to exit. As a temporary fix using a Thread to do the copy
-              // and discard it after a minute.
-              // This won't be necessary once the bug is fixed in the api.
-              // https://github.com/kubernetes-client/java/issues/861
-              CopyThread copyThread = new CopyThread(pvPod, destinationPath);
-              copyThread.start();
-              ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
-                  .and().with().pollInterval(5, SECONDS)
-                  .atMost(1, MINUTES).await();
-              withStandardRetryPolicy
-                  .conditionEvaluationListener(
-                      condition -> logger.info("Waiting for copy from pod to be complete, "
-                          + "(elapsed time {0} , remaining time {1}",
-                          condition.getElapsedTimeInMS(),
-                          condition.getRemainingTimeInMS()))
-                  .until(doneCopying(copyThread));
-              copyThread.interrupt();
-            } catch (ApiException ex) {
-              logger.severe(ex.getResponseBody());
-              logger.severe("Failed to archive persistent volume contents");
-            } finally {
-              if (pvPod != null) {
-                deletePVPod(namespace);
-              }
-            }
-          }
+        // dump files stored in persistent volumes to
+        // RESULT_DIR/PVC_NAME/PV_NAME location
+        for (var pv : pvList.getItems()) {
+          String claimName = pvc.getMetadata().getName();
+          String pvName = pv.getMetadata().getName();
+          copy(namespace, claimName,
+              Files.createDirectories(
+                  Paths.get(resultDir.toString(), claimName, pvName)));
         }
       }
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
@@ -235,6 +208,41 @@ public class LoggingUtil {
       );
     } else {
       logger.info("Nothing to write in {0} list is empty", Paths.get(resultDir, fileName));
+    }
+  }
+
+
+  // there is currently a bug in the copy API which leaves i/o stream left open
+  // and copy not to exit. As a temporary fix using a Thread to do the copy
+  // and discard it after a minute.
+  // This won't be necessary once the bug is fixed in the api.
+  // https://github.com/kubernetes-client/java/issues/861
+  private static void copy(String namespace, String claimName, Path destinationPath) throws ApiException {
+    V1Pod pvPod = null;
+    try {
+      pvPod = createPVPod(namespace, claimName);
+      CopyThread copypv = new CopyThread(pvPod, destinationPath);
+      copypv.start();
+      ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
+          .and().with().pollInterval(5, SECONDS)
+          .atMost(1, MINUTES).await();
+      withStandardRetryPolicy
+          .conditionEvaluationListener(
+              condition -> logger.info("Waiting for copy from pod to be complete, "
+                  + "(elapsed time {0} , remaining time {1}",
+                  condition.getElapsedTimeInMS(),
+                  condition.getRemainingTimeInMS()))
+          .until(doneCopying(copypv));
+      if (copypv.isAlive()) {
+        logger.warning("Terminating the copy thread");
+        copypv.interrupt();
+      }
+    } catch (ApiException apex) {
+      logger.severe(apex.getResponseBody());
+    } finally {
+      if (pvPod != null) {
+        deletePVPod(namespace);
+      }
     }
   }
 
