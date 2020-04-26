@@ -136,12 +136,12 @@ public class CleanupUtil {
    * Returns true if artifacts doesn't exists in the Kubernetes cluster.
    *
    * @param namespace name of the namespace
-   * @return true if at least one artifact exist otherwise false
+   * @return true if no artifacts exists otherwise false
    */
   public static Callable<Boolean> artifactsDoesntExist(String namespace) {
     return () -> {
       boolean doesnotExist = true;
-      logger.info("Checking if artifacts exists in namespace {0}\n", namespace);
+      logger.info("Checking for artifacts in namespace {0}\n", namespace);
 
       // Check if domain exists
       try {
@@ -433,7 +433,7 @@ public class CleanupUtil {
   }
 
   /**
-   * Deletes artifacts in the Kubernetes cluster in the namespace.
+   * Deletes artifacts in the Kubernetes cluster in the given namespace.
    *
    * @param namespace name of the namespace
    */

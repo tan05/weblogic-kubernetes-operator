@@ -58,9 +58,8 @@ public class LoggingUtil {
     namespaces = Arrays.asList(ns); //remove after debug
     logger.info("Collecting logs...");
     String resultDirExt = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-    Path resultDir;
     try {
-      resultDir = Files.createDirectories(
+      Path resultDir = Files.createDirectories(
           Paths.get(LOGS_DIR, itInstance.getClass().getSimpleName(),
               resultDirExt));
       for (var namespace : namespaces) {
@@ -226,7 +225,7 @@ public class LoggingUtil {
     V1Pod pvPod = null;
     CopyThread copypv = null;
     try {
-      // create a temporary pod to mount the interested persistent volume
+      // create a temporary pod to get access to the interested persistent volume
       pvPod = createPVPod(namespace, claimName);
 
       // create a thread and copy the /shared directory from persistent volume
@@ -290,7 +289,7 @@ public class LoggingUtil {
                     .name("weblogic-domain-storage-volume")
                     .persistentVolumeClaim(
                         new V1PersistentVolumeClaimVolumeSource()
-                            .claimName(claimName)))))
+                            .claimName(claimName))))) // this gives access to the PV of WebLogic domain pods
         .metadata(new V1ObjectMeta().name("pv-pod"))
         .apiVersion("v1")
         .kind("Pod");

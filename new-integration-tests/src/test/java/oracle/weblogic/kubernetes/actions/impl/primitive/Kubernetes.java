@@ -63,7 +63,6 @@ import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainList;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
 
-import static io.kubernetes.client.util.Yaml.dump;
 
 // TODO ryan - in here we want to implement all of the kubernetes
 // primitives that we need, using the API, not spawning a process
@@ -81,7 +80,6 @@ public class Kubernetes implements LoggedTest {
   private static String FOREGROUND = "Foreground";
   private static String BACKGROUND = "Background";
   private static int GRACE_PERIOD = 0;
-  private static final boolean VERBOSE = false;
 
   // Core Kubernetes API clients
   private static ApiClient apiClient = null;
@@ -286,9 +284,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
-      if (VERBOSE) {
-        logger.info(dump(deployments));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -301,7 +296,7 @@ public class Kubernetes implements LoggedTest {
    *
    * @param namespace namespace in which to delete the deployment
    * @param name deployment name
-   * @return true if deletion is successful otherwise false
+   * @return true if deletion is successful
    * @throws ApiException when delete fails
    */
   public static boolean deleteDeployment(String namespace, String name) throws ApiException {
@@ -317,14 +312,11 @@ public class Kubernetes implements LoggedTest {
           FOREGROUND, // String | Whether and how garbage collection will be performed.
           null // V1DeleteOptions.
       );
-      if (VERBOSE) {
-        logger.info(dump(status));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
     }
-    return true;  // FIX IT
+    return true;
   }
 
   // --------------------------- pods -----------------------------------------
@@ -442,9 +434,6 @@ public class Kubernetes implements LoggedTest {
               null, // Timeout for the list/watch call.
               Boolean.FALSE // Watch for changes to the described resources.
           );
-      if (VERBOSE) {
-        logger.info(dump(v1PodList));
-      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -453,7 +442,7 @@ public class Kubernetes implements LoggedTest {
   }
 
   /**
-   * Copy a directory from Kubernetes pod to destination path.
+   * Copy a directory from Kubernetes pod to local destination path.
    * @param pod V1Pod object
    * @param srcPath source directory location
    * @param destination destination directory path
@@ -542,9 +531,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
-      if (VERBOSE) {
-        logger.info(dump(namespaceList));
-      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -576,9 +562,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
-      if (VERBOSE) {
-        logger.info(dump(namespaceList));
-      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -830,9 +813,6 @@ public class Kubernetes implements LoggedTest {
     KubernetesApiResponse<DomainList> response = null;
     try {
       response = crdClient.list(namespace);
-      if (VERBOSE) {
-        logger.info(dump(response.getObject()));
-      }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
       throw ex;
@@ -906,9 +886,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
-      if (VERBOSE) {
-        logger.info(dump(configMapList));
-      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -1019,9 +996,6 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1SecretList listSecrets(String namespace) {
     KubernetesApiResponse<V1SecretList> list = secretClient.list(namespace);
-    if (VERBOSE) {
-      logger.info(dump(list));
-    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1161,9 +1135,6 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1PersistentVolumeList listPersistentVolumes() {
     KubernetesApiResponse<V1PersistentVolumeList> list = pvClient.list();
-    if (VERBOSE) {
-      logger.info(dump(list));
-    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1193,9 +1164,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Timeout for the list/watch call
           false // Watch for changes to the described resources
       );
-      if (VERBOSE) {
-        logger.info(dump(listPersistentVolume));
-      }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
@@ -1210,9 +1178,6 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1PersistentVolumeClaimList listPersistentVolumeClaims(String namespace) {
     KubernetesApiResponse<V1PersistentVolumeClaimList> list = pvcClient.list(namespace);
-    if (VERBOSE) {
-      logger.info(dump(list));
-    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1299,9 +1264,6 @@ public class Kubernetes implements LoggedTest {
    */
   public static V1ServiceAccountList listServiceAccounts(String namespace) {
     KubernetesApiResponse<V1ServiceAccountList> list = serviceAccountClient.list(namespace);
-    if (VERBOSE) {
-      logger.info(dump(list));
-    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1383,14 +1345,11 @@ public class Kubernetes implements LoggedTest {
    * List services in a given namespace.
    *
    * @param namespace name of the namespace
-   * @return V1ServiceList list of V1Service objects
+   * @return V1ServiceList list of link{@V1Service} objects
    */
   public static V1ServiceList listServices(String namespace) {
 
     KubernetesApiResponse<V1ServiceList> list = serviceClient.list(namespace);
-    if (VERBOSE) {
-      logger.info(dump(list));
-    }
     if (list.isSuccess()) {
       return list.getObject();
     } else {
@@ -1406,7 +1365,7 @@ public class Kubernetes implements LoggedTest {
    *
    * @param namespace name of the namespace
    * @param name name of the job
-   * @return true if delete is successful otherwise false
+   * @return true if delete is successful
    * @throws ApiException when delete job fails
    */
   public static boolean deleteJob(String namespace, String name) throws ApiException {
@@ -1422,14 +1381,11 @@ public class Kubernetes implements LoggedTest {
           FOREGROUND, // String | Whether and how garbage collection will be performed.
           null // V1DeleteOptions.
       );
-      if (VERBOSE) {
-        logger.info(dump(status));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
     }
-    return true;  // FIX IT
+    return true;
   }
 
   /**
@@ -1455,9 +1411,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list/watch call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources
       );
-      if (VERBOSE) {
-        logger.info(dump(list));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1474,7 +1427,7 @@ public class Kubernetes implements LoggedTest {
    *
    * @param namespace name of the namespace
    * @param name name of the replica set
-   * @return true if delete is successful otherwise false
+   * @return true if delete is successful
    * @throws ApiException if delete fails
    */
   public static boolean deleteReplicaSet(String namespace, String name) throws ApiException {
@@ -1490,21 +1443,18 @@ public class Kubernetes implements LoggedTest {
           FOREGROUND, // String | Whether and how garbage collection will be performed.
           null // V1DeleteOptions.
       );
-      if (VERBOSE) {
-        logger.info(dump(status));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
     }
-    return true; // FIX IT
+    return true;
   }
 
   /**
    * List replica sets in the given namespace.
    *
    * @param namespace in which to list the replica sets
-   * @return V1ReplicaSetList of replica sets
+   * @return V1ReplicaSetList list of link{@V1ReplicaSet} objects
    * @throws ApiException when list fails
    */
   public static V1ReplicaSetList listReplicaSets(String namespace) throws ApiException {
@@ -1522,9 +1472,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
-      if (VERBOSE) {
-        logger.info(dump(list));
-      }
       return list;
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
@@ -1543,9 +1490,8 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean createClusterRoleBinding(V1ClusterRoleBinding clusterRoleBinding)
       throws ApiException {
-    V1ClusterRoleBinding crb;
     try {
-      crb = rbacAuthApi.createClusterRoleBinding(
+      V1ClusterRoleBinding crb = rbacAuthApi.createClusterRoleBinding(
           clusterRoleBinding, // role binding configuration data
           PRETTY, // pretty print output
           null, // indicates that modifications should not be persisted
@@ -1578,7 +1524,7 @@ public class Kubernetes implements LoggedTest {
     if (response.getObject() != null) {
       logger.info(
           "Received after-deletion status of the requested object, will be deleting "
-          + "Cluster Role Binding " + name + " in background!");
+              + "Cluster Role Binding " + name + " in background!");
     }
 
     return true;
@@ -1588,7 +1534,7 @@ public class Kubernetes implements LoggedTest {
    * List cluster role bindings.
    *
    * @param labelSelector labels to narrow the list
-   * @return V1RoleBindingList list of V1RoleBinding objects
+   * @return V1RoleBindingList list of link{@V1RoleBinding} objects
    * @throws ApiException when listing fails
    */
   public static V1RoleBindingList listClusterRoleBindings(String labelSelector) throws ApiException {
@@ -1605,9 +1551,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list/watch call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources
       );
-      if (VERBOSE) {
-        logger.info(dump(roleBindings));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1620,9 +1563,10 @@ public class Kubernetes implements LoggedTest {
    *
    * @param namespace name of the namespace
    * @param name name of the role
+   * @return return true if deletion is successful
    * @throws ApiException when delete fails
    */
-  public static void deleteNamespacedRoleBinding(String namespace, String name)
+  public static boolean deleteNamespacedRoleBinding(String namespace, String name)
       throws ApiException {
     try {
       V1Status status = rbacAuthApi.deleteNamespacedRoleBinding(
@@ -1635,20 +1579,18 @@ public class Kubernetes implements LoggedTest {
           FOREGROUND, // String | Whether and how garbage collection will be performed.
           null // V1DeleteOptions.
       );
-      if (VERBOSE) {
-        logger.info(dump(status));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
     }
+    return true;
   }
 
   /**
    * List role bindings in a given name space.
    *
    * @param namespace name of the namespace
-   * @return V1RoleBindingList list of V1RoleBinding objects
+   * @return V1RoleBindingList list of link{@V1RoleBinding} objects
    * @throws ApiException when listing fails
    */
   public static V1RoleBindingList listNamespacedRoleBinding(String namespace)
@@ -1667,9 +1609,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
-      if (VERBOSE) {
-        logger.info(dump(roleBindings));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1682,11 +1621,11 @@ public class Kubernetes implements LoggedTest {
    * Delete role in the Kubernetes cluster.
    *
    * @param name name of the cluster role to delete
-   * @throws ApiException when listing fails
+   * @throws ApiException when delete fails
    */
-  public static void deleteClusterRole(String name) throws ApiException {
+  public static boolean deleteClusterRole(String name) throws ApiException {
     try {
-      V1Status status = rbacAuthApi.deleteClusterRole(
+      rbacAuthApi.deleteClusterRole(
           name, // String | name of the role.
           PRETTY, // String | pretty print output.
           null, // String | When present, indicates that modifications should not be persisted.
@@ -1695,13 +1634,11 @@ public class Kubernetes implements LoggedTest {
           FOREGROUND, // String | Whether and how garbage collection will be performed.
           null // V1DeleteOptions.
       );
-      if (VERBOSE) {
-        logger.info(dump(status));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
     }
+    return true;
   }
 
 
@@ -1709,7 +1646,7 @@ public class Kubernetes implements LoggedTest {
    * List roles in the Kubernetes cluster.
    *
    * @param labelSelector labels to narrow the list
-   * @return V1ClusterRoleList list of V1ClusterRole objects
+   * @return V1ClusterRoleList list of link{@V1ClusterRole} objects
    * @throws ApiException when listing fails
    */
   public static V1ClusterRoleList listClusterRoles(String labelSelector) throws ApiException {
@@ -1726,9 +1663,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
-      if (VERBOSE) {
-        logger.info(dump(roles));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1743,9 +1677,9 @@ public class Kubernetes implements LoggedTest {
    * @param name name of the role to delete
    * @throws ApiException when delete fails
    */
-  public static void deleteNamespacedRole(String namespace, String name) throws ApiException {
+  public static boolean deleteNamespacedRole(String namespace, String name) throws ApiException {
     try {
-      V1Status status = rbacAuthApi.deleteNamespacedRole(
+      rbacAuthApi.deleteNamespacedRole(
           name, // String | name of the job.
           namespace, // String | name of the namespace.
           PRETTY, // String | pretty print output.
@@ -1755,20 +1689,18 @@ public class Kubernetes implements LoggedTest {
           FOREGROUND, // String | Whether and how garbage collection will be performed.
           null // V1DeleteOptions.
       );
-      if (VERBOSE) {
-        logger.info(dump(status));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
     }
+    return true;
   }
 
   /**
    * List roles in a given namespace.
    *
    * @param namespace name of the namespace
-   * @return V1RoleList list of V1Role object
+   * @return V1RoleList list of link{@V1Role} object
    * @throws ApiException when listing fails
    */
   public static V1RoleList listNamespacedRole(String namespace) throws ApiException {
@@ -1786,9 +1718,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
-      if (VERBOSE) {
-        logger.info(dump(roles));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
@@ -1800,7 +1729,7 @@ public class Kubernetes implements LoggedTest {
    * List Ingress extensions in the given namespace.
    *
    * @param namespace name of the namespace
-   * @return link{@ExtensionsV1beta1IngressList} list of link{@ExtensionsV1beta1Ingress} objects
+   * @return ExtensionsV1beta1IngressList list of link{@ExtensionsV1beta1Ingress} objects
    * @throws ApiException when listing fails
    */
   public static ExtensionsV1beta1IngressList listIngressExtensions(String namespace) throws ApiException {
@@ -1819,9 +1748,6 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list/watch call.
           ALLOW_WATCH_BOOKMARKS // Boolean | Watch for changes to the described resources.
       );
-      if (VERBOSE) {
-        logger.info(dump(ingressList));
-      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
