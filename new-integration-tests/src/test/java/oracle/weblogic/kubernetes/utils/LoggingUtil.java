@@ -357,10 +357,8 @@ public class LoggingUtil {
         logger.info("Done copying.");
       } catch (ApiException ex) {
         logger.severe(ex.getResponseBody());
-        logger.severe("Failed to archive persistent volume contents");
       } catch (IOException ex) {
         logger.severe(ex.getMessage());
-        logger.severe("Failed to archive persistent volume contents");
       }
     }
   }
