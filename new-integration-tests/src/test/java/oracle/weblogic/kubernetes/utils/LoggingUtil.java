@@ -116,6 +116,7 @@ public class LoggingUtil {
           // get the pvs based on label weblogic.domainUID
           V1PersistentVolumeList pvList = Kubernetes
               .listPersistentVolumes(String.format("weblogic.domainUID = %s", label));
+          // write the pv descriptions
           writeToFile(pvList, resultDir.toString(), label + "_pv.log");
 
           // dump files stored in persistent volumes to
@@ -127,21 +128,26 @@ public class LoggingUtil {
             Files.createDirectories(destinationPath);
             V1Pod pvPod = null;
             try {
+              // create a temp pod and mount pv for copying weblogic domain config, logs, applications etc.
               pvPod = createPVPod(namespace, claimName);
+              // there is currently a bug in the copy API which prevents i/o stream left open
+              // and copy command not to exit. As a temporary fix using a Thread to do the copy
+              // and discard it after a minute.
+              // This won't be necessary once the bug is fixed in the api.
+              // https://github.com/kubernetes-client/java/issues/861
               CopyThread copyThread = new CopyThread(pvPod, destinationPath);
               copyThread.start();
-              // wait for the pod to come up
               ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
                   .and().with().pollInterval(5, SECONDS)
                   .atMost(1, MINUTES).await();
-
               withStandardRetryPolicy
                   .conditionEvaluationListener(
                       condition -> logger.info("Waiting for copy from pod to be complete, "
-                          + "(elapsed time {1} , remaining time {2}",
+                          + "(elapsed time {0} , remaining time {1}",
                           condition.getElapsedTimeInMS(),
                           condition.getRemainingTimeInMS()))
-                  .until(stillCopying(copyThread));
+                  .until(doneCopying(copyThread));
+              copyThread.interrupt();
             } catch (ApiException ex) {
               logger.severe(ex.getResponseBody());
               logger.severe("Failed to archive persistent volume contents");
@@ -205,7 +211,7 @@ public class LoggingUtil {
         if (pod.getMetadata() != null) {
           writeToFile(Kubernetes.getPodLog(pod.getMetadata().getName(), namespace),
               resultDir.toString(),
-              namespace + "_" + pod.getMetadata().getName() + ".log");
+              namespace + "-pod_" + pod.getMetadata().getName() + ".log");
         }
       }
     } catch (Exception ex) {
@@ -291,17 +297,30 @@ public class LoggingUtil {
     Kubernetes.deletePod("pv-pod", namespace);
   }
 
-  private static Callable<Boolean> stillCopying(Thread copyThread) {
+  /**
+   * Checks if the copying of the PV is done.
+   * @param copyThread Thread object doing the copy
+   * @return true if done copying otherwise false
+   */
+  private static Callable<Boolean> doneCopying(Thread copyThread) {
     return () -> {
       return !copyThread.isAlive();
     };
   }
 
+  /**
+   * A workaround utility class to copy the contents of persistent volume in a thread.
+   */
   private static class CopyThread extends Thread {
 
     V1Pod pvPod;
     Path destinationPath;
 
+    /**
+     * Constructor.
+     * @param pod V1Pod object which has access to the PV mount
+     * @param destinationPath Path location to copy the /shared contents
+     */
     public CopyThread(V1Pod pod, Path destinationPath) {
       this.pvPod = pod;
       this.destinationPath = destinationPath;
@@ -310,7 +329,7 @@ public class LoggingUtil {
     @Override
     public void run() {
       try {
-        logger.info("Copying from PV...");
+        logger.info("Copying from PV /shared to {0}", destinationPath);
         Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
         logger.info("Done copying.");
       } catch (ApiException ex) {
