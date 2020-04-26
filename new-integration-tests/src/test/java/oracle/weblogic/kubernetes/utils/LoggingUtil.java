@@ -12,8 +12,8 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-import io.kubernetes.client.Copy;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -128,18 +128,22 @@ public class LoggingUtil {
             V1Pod pvPod = null;
             try {
               pvPod = createPVPod(namespace, claimName);
-              logger.info("Copying from PV...");
-              //Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
-              logger.info("Copying logs.tar...");
-              Copy.copyFileFromPod(namespace, "pv-pod", "/shared/logs.tar", destinationPath);
-              logger.info("Copying pv.tar.tar...");
-              Copy.copyFileFromPod(namespace, "pv-pod", "/shared/pv.tar", destinationPath);
-              logger.info("Done copying.");
+              CopyThread copyThread = new CopyThread(pvPod, destinationPath);
+              copyThread.start();
+              // wait for the pod to come up
+              ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
+                  .and().with().pollInterval(5, SECONDS)
+                  .atMost(1, MINUTES).await();
+
+              withStandardRetryPolicy
+                  .conditionEvaluationListener(
+                      condition -> logger.info("Waiting for copy from pod to be complete, "
+                          + "(elapsed time {1} , remaining time {2}",
+                          condition.getElapsedTimeInMS(),
+                          condition.getRemainingTimeInMS()))
+                  .until(stillCopying(copyThread));
             } catch (ApiException ex) {
               logger.severe(ex.getResponseBody());
-              logger.severe("Failed to archive persistent volume contents");
-            } catch (IOException ex) {
-              logger.severe(ex.getMessage());
               logger.severe("Failed to archive persistent volume contents");
             } finally {
               if (pvPod != null) {
@@ -285,6 +289,38 @@ public class LoggingUtil {
    */
   public static void deletePVPod(String namespace) throws ApiException {
     Kubernetes.deletePod("pv-pod", namespace);
+  }
+
+  private static Callable<Boolean> stillCopying(Thread copyThread) {
+    return () -> {
+      return !copyThread.isAlive();
+    };
+  }
+
+  private static class CopyThread extends Thread {
+
+    V1Pod pvPod;
+    Path destinationPath;
+
+    public CopyThread(V1Pod pod, Path destinationPath) {
+      this.pvPod = pod;
+      this.destinationPath = destinationPath;
+    }
+
+    @Override
+    public void run() {
+      try {
+        logger.info("Copying from PV...");
+        Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
+        logger.info("Done copying.");
+      } catch (ApiException ex) {
+        logger.severe(ex.getResponseBody());
+        logger.severe("Failed to archive persistent volume contents");
+      } catch (IOException ex) {
+        logger.severe(ex.getMessage());
+        logger.severe("Failed to archive persistent volume contents");
+      }
+    }
   }
 
 }
