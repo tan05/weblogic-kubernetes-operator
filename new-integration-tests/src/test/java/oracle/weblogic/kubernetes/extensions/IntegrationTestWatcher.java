@@ -339,7 +339,7 @@ public class IntegrationTestWatcher implements
       logger.warning(ex.getMessage());
     }
     for (var namespace : namespaces) {
-      LoggingUtil.generateLog((String) namespace, resultDir);
+      LoggingUtil.generateLog((String) namespace, resultDir.toString());
     }
   }
 

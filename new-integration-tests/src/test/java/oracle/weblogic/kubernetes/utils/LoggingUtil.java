@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Container;
@@ -40,14 +39,14 @@ import static org.awaitility.Awaitility.with;
 public class LoggingUtil {
 
   /**
-   * Directory to store logs.
+   * Directory to store logs. In Jenkins it is set to RESULT_ROOT, for local runs it is set to tmp.
    */
   private static final String LOGS_DIR = System.getenv().getOrDefault("RESULT_ROOT",
         System.getProperty("java.io.tmpdir"));
 
   /**
    * Collect logs for artifacts in Kubernetes cluster for current running test object. This method can be called
-   * anywhere in the test by passing the test instance object and list namespaces.
+   * anywhere in the test by passing the test instance object and namespaces list.
    *
    * <p>The collected logs are written in the LOGS_DIR/IT_TEST_CLASSNAME/CURRENT_TIMESTAMP directory.
    *
@@ -65,7 +64,7 @@ public class LoggingUtil {
           Paths.get(LOGS_DIR, itInstance.getClass().getSimpleName(),
               resultDirExt));
       for (var namespace : namespaces) {
-        LoggingUtil.generateLog((String) namespace, resultDir);
+        LoggingUtil.generateLog((String) namespace, resultDir.toString());
       }
     } catch (IOException ex) {
       logger.severe(ex.getMessage());
@@ -78,12 +77,12 @@ public class LoggingUtil {
    * @param namespace in which to query cluster for artifacts
    * @param resultDir existing directory to write log files
    */
-  public static void generateLog(String namespace, Path resultDir) {
+  public static void generateLog(String namespace, String resultDir) {
     logger.info("Collecting logs in namespace : {0}", namespace);
 
     // get service accounts
     try {
-      writeToFile(Kubernetes.listServiceAccounts(namespace), resultDir.toString(), namespace + "_sa.log");
+      writeToFile(Kubernetes.listServiceAccounts(namespace), resultDir, namespace + "_sa.log");
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
@@ -92,7 +91,7 @@ public class LoggingUtil {
     try {
       for (var ns : Kubernetes.listNamespacesAsObjects().getItems()) {
         if (namespace.equals(ns.getMetadata().getName())) {
-          writeToFile(ns, resultDir.toString(), namespace + "_ns.log");
+          writeToFile(ns, resultDir, namespace + "_ns.log");
         }
       }
     } catch (Exception ex) {
@@ -101,7 +100,7 @@ public class LoggingUtil {
 
     // get pvc
     try {
-      writeToFile(Kubernetes.listPersistentVolumeClaims(namespace), resultDir.toString(), namespace + "_pvc.log");
+      writeToFile(Kubernetes.listPersistentVolumeClaims(namespace), resultDir, namespace + "_pvc.log");
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
@@ -118,7 +117,7 @@ public class LoggingUtil {
         V1PersistentVolumeList pvList = Kubernetes
             .listPersistentVolumes(String.format("weblogic.domainUID = %s", label));
         // write the persistent volume configurations to log
-        writeToFile(pvList, resultDir.toString(), label + "_pv.log");
+        writeToFile(pvList, resultDir, label + "_pv.log");
 
         // dump files stored in persistent volumes to
         // RESULT_DIR/PVC_NAME/PV_NAME location
@@ -128,14 +127,14 @@ public class LoggingUtil {
           try {
             copy(namespace, claimName,
                 Files.createDirectories(
-                    Paths.get(resultDir.toString(), claimName, pvName)));
+                    Paths.get(resultDir, claimName, pvName)));
           } catch (ApiException apex) {
             logger.warning(apex.getResponseBody());
           } catch (Exception ex) {
             logger.warning(ex.getMessage());
           }
         }
-        logger.info("Done archiving through the pvs");
+        logger.info("Done archiving the persistent volumes");
       }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
@@ -145,42 +144,42 @@ public class LoggingUtil {
 
     // get secrets
     try {
-      writeToFile(Kubernetes.listSecrets(namespace), resultDir.toString(), namespace + "_secrets.log");
+      writeToFile(Kubernetes.listSecrets(namespace), resultDir, namespace + "_secrets.log");
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
 
     // get configmaps
     try {
-      writeToFile(Kubernetes.listConfigMaps(namespace), resultDir.toString(), namespace + "_cm.log");
+      writeToFile(Kubernetes.listConfigMaps(namespace), resultDir, namespace + "_cm.log");
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
 
     // get jobs
     try {
-      writeToFile(Kubernetes.listJobs(namespace), resultDir.toString(), namespace + "_jobs.log");
+      writeToFile(Kubernetes.listJobs(namespace), resultDir, namespace + "_jobs.log");
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
 
     // get deployments
     try {
-      writeToFile(Kubernetes.listDeployments(namespace), resultDir.toString(), namespace + "_deploy.log");
+      writeToFile(Kubernetes.listDeployments(namespace), resultDir, namespace + "_deploy.log");
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
 
     // get replicasets
     try {
-      writeToFile(Kubernetes.listReplicaSets(namespace), resultDir.toString(), namespace + "_rs.log");
+      writeToFile(Kubernetes.listReplicaSets(namespace), resultDir, namespace + "_rs.log");
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
 
     // get domain objects in the given namespace
     try {
-      writeToFile(Kubernetes.listDomains(namespace), resultDir.toString(), namespace + "_domains.log");
+      writeToFile(Kubernetes.listDomains(namespace), resultDir, namespace + "_domains.log");
     } catch (Exception ex) {
       logger.warning("Listing domain failed, not collecting any data for domain");
     }
@@ -189,9 +188,8 @@ public class LoggingUtil {
     try {
       for (var pod : Kubernetes.listPods(namespace, null).getItems()) {
         if (pod.getMetadata() != null) {
-          writeToFile(Kubernetes.getPodLog(pod.getMetadata().getName(), namespace),
-              resultDir.toString(),
-              namespace + "-pod_" + pod.getMetadata().getName() + ".log");
+          String podName = pod.getMetadata().getName();
+          writeToFile(Kubernetes.getPodLog(podName, namespace), resultDir, namespace + "-pod_" + podName + ".log");
         }
       }
     } catch (Exception ex) {
@@ -203,8 +201,8 @@ public class LoggingUtil {
    * Write the YAML representation of object to a file in the resultDir.
    *
    * @param obj to write to the file as YAML
-   * @param resultDir directory in which to write the file
-   * @param fileName name of the log file to write
+   * @param resultDir directory in which to write the log file
+   * @param fileName name of the log file
    * @throws IOException when write fails
    */
   private static void writeToFile(Object obj, String resultDir, String fileName) throws IOException {
@@ -234,6 +232,7 @@ public class LoggingUtil {
       // create a thread and copy the /shared directory from persistent volume
       copypv = new CopyThread(pvPod, destinationPath);
       copypv.start();
+      // wait until the thread dies or 1 minute elapsed
       try {
         int elapsedtime = 0;
         while (elapsedtime < 60) {
@@ -249,20 +248,6 @@ public class LoggingUtil {
       } catch (InterruptedException iex) {
         logger.warning(iex.getMessage());
       }
-
-      // wait for the copy task to complete in a minute
-      /*
-      ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
-          .and().with().pollInterval(15, SECONDS)
-          .atMost(1, MINUTES).await();
-      withStandardRetryPolicy
-          .conditionEvaluationListener(
-              condition -> logger.info("Waiting for copy from pod to be complete, "
-                  + "(elapsed time {0} , remaining time {1}",
-                  condition.getElapsedTimeInMS(),
-                  condition.getRemainingTimeInMS()))
-          .until(doneCopying(copypv));
-      */
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
     } finally {
@@ -280,13 +265,14 @@ public class LoggingUtil {
 
   /**
    * Create a nginx pod named "pv-pod" with persistent volume from claimName param.
+   * The claimName makes this pod to access the PV mount from PVS of interest
    *
    * @param namespace name of the namespace
    * @param claimName persistent volume claim name
    * @return V1Pod object
    * @throws ApiException when create pod fails
    */
-  public static V1Pod createPVPod(String namespace, String claimName) throws ApiException {
+  private static V1Pod createPVPod(String namespace, String claimName) throws ApiException {
     V1Pod pvPod;
     V1Pod podBody = new V1Pod()
         .spec(new V1PodSpec()
@@ -333,19 +319,8 @@ public class LoggingUtil {
    * @param namespace name of the namespace
    * @throws ApiException when delete fails
    */
-  public static void deletePVPod(String namespace) throws ApiException {
+  private static void deletePVPod(String namespace) throws ApiException {
     Kubernetes.deletePod("pv-pod", namespace);
-  }
-
-  /**
-   * Checks if the copying of the PV is done.
-   * @param copyThread Thread object doing the copy
-   * @return true if done copying otherwise false
-   */
-  private static Callable<Boolean> doneCopying(Thread copyThread) {
-    return () -> {
-      return !copyThread.isAlive();
-    };
   }
 
   /**
