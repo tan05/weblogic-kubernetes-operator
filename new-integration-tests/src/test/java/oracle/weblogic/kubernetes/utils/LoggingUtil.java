@@ -113,8 +113,8 @@ public class LoggingUtil {
           String label = pvc.getMetadata().getLabels().get("weblogic.domainUID");
 
           // get the pvs based on label weblogic.domainUID
-          V1PersistentVolumeList pvList = Kubernetes.
-              listPersistentVolumes(String.format("weblogic.domainUID = %s", label));
+          V1PersistentVolumeList pvList = Kubernetes
+              .listPersistentVolumes(String.format("weblogic.domainUID = %s", label));
           writeToFile(pvList, resultDir.toString(), label + "_pv.log");
 
           // dump files stored in persistent volumes to
@@ -271,7 +271,7 @@ public class LoggingUtil {
    * @throws ApiException when delete fails
    */
   public static void deletePVPod(String namespace) throws ApiException {
-      Kubernetes.deletePod(namespace, "pv-pod");
+    Kubernetes.deletePod(namespace, "pv-pod");
   }
 
 }
