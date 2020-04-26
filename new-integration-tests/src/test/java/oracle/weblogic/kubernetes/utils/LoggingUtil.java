@@ -135,9 +135,8 @@ public class LoggingUtil {
             logger.warning(ex.getMessage());
           }
         }
-        logger.info("Done iterating through the pvs");
+        logger.info("Done archiving through the pvs");
       }
-      logger.info("Done iterating through the pvs");
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
     } catch (Exception ex) {
