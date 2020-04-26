@@ -219,10 +219,16 @@ public class LoggingUtil {
   // https://github.com/kubernetes-client/java/issues/861
   private static void copy(String namespace, String claimName, Path destinationPath) throws ApiException {
     V1Pod pvPod = null;
+    CopyThread copypv = null;
     try {
+      // create a temporary pod to mount the interested persistent volume
       pvPod = createPVPod(namespace, claimName);
-      CopyThread copypv = new CopyThread(pvPod, destinationPath);
+
+      // create a thread and copy the /shared directory from persistent volume
+      copypv = new CopyThread(pvPod, destinationPath);
       copypv.start();
+
+      // wait for the copy task to complete in a minute
       ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
           .and().with().pollInterval(5, SECONDS)
           .atMost(1, MINUTES).await();
@@ -233,13 +239,15 @@ public class LoggingUtil {
                   condition.getElapsedTimeInMS(),
                   condition.getRemainingTimeInMS()))
           .until(doneCopying(copypv));
+    } catch (ApiException apex) {
+      logger.severe(apex.getResponseBody());
+    } finally {
+      // interrupt the copy thead
       if (copypv.isAlive()) {
         logger.warning("Terminating the copy thread");
         copypv.interrupt();
       }
-    } catch (ApiException apex) {
-      logger.severe(apex.getResponseBody());
-    } finally {
+      // remove the temporary pod
       if (pvPod != null) {
         deletePVPod(namespace);
       }
