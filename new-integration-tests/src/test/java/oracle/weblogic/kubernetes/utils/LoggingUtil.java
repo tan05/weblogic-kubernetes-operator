@@ -234,8 +234,24 @@ public class LoggingUtil {
       // create a thread and copy the /shared directory from persistent volume
       copypv = new CopyThread(pvPod, destinationPath);
       copypv.start();
+      try {
+        int elapsedtime = 0;
+        while (elapsedtime < 60) {
+          if (!copypv.isAlive()) {
+            break;
+          } else {
+            logger.info("Waiting for the copy from pv to be complete, "
+                + "elapsed time({0}), remaining time({1})", elapsedtime, 60 - elapsedtime);
+          }
+          Thread.sleep(15 * 1000);
+          elapsedtime += 15;
+        }
+      } catch (InterruptedException iex) {
+        logger.warning(iex.getMessage());
+      }
 
       // wait for the copy task to complete in a minute
+      /*
       ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
           .and().with().pollInterval(15, SECONDS)
           .atMost(1, MINUTES).await();
@@ -246,6 +262,7 @@ public class LoggingUtil {
                   condition.getElapsedTimeInMS(),
                   condition.getRemainingTimeInMS()))
           .until(doneCopying(copypv));
+      */
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
     } finally {
