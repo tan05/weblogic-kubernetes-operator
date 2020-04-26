@@ -124,6 +124,7 @@ public class LoggingUtil {
             String claimName = pvc.getMetadata().getName();
             String pvName = item.getMetadata().getName();
             Path destinationPath = Paths.get(resultDir.toString(), claimName, pvName);
+            Files.createDirectories(destinationPath);
             V1Pod pvPod = null;
             try {
               pvPod = createPVPod(namespace, claimName);
@@ -283,7 +284,7 @@ public class LoggingUtil {
    * @throws ApiException when delete fails
    */
   public static void deletePVPod(String namespace) throws ApiException {
-    Kubernetes.deletePod(namespace, "pv-pod");
+    Kubernetes.deletePod("pv-pod", namespace);
   }
 
 }
