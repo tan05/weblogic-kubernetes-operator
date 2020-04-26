@@ -11,17 +11,26 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimVolumeSource;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodSpec;
+import io.kubernetes.client.openapi.models.V1Volume;
+import io.kubernetes.client.openapi.models.V1VolumeMount;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
+import org.awaitility.core.ConditionFactory;
 
 import static io.kubernetes.client.util.Yaml.dump;
-import static oracle.weblogic.kubernetes.assertions.impl.Kubernetes.isPodRunning;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static oracle.weblogic.kubernetes.assertions.TestAssertions.podReady;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
+import static org.awaitility.Awaitility.with;
 
 /**
  * A utility class to collect logs for artifacts in Kubernetes cluster.
@@ -104,31 +113,25 @@ public class LoggingUtil {
           String label = pvc.getMetadata().getLabels().get("weblogic.domainUID");
 
           // get the pvs based on label weblogic.domainUID
-          V1PersistentVolumeList pvList = Kubernetes.listPersistentVolumes(
-              String.format("weblogic.domainUID = %s", label)
-          );
+          V1PersistentVolumeList pvList = Kubernetes.
+              listPersistentVolumes(String.format("weblogic.domainUID = %s", label));
           writeToFile(pvList, resultDir.toString(), label + "_pv.log");
 
-          // extract the hostPath from PV
-          Set<String> paths = new HashSet();
-          pvList.getItems().forEach((item) -> {
-            paths.add(item.getSpec().getHostPath().getPath());
-          });
-          for (String path : paths) {
-            logger.info("PV Path :{0}", path);
+          // dump files stored in persistent volumes to
+          // RESULT_DIR/PVC_NAME/PV_NAME location
+          for (var item : pvList.getItems()) {
+            String claimName = pvc.getMetadata().getName();
+            String pvName = item.getMetadata().getName();
+            Path destinationPath = Paths.get(resultDir.toString(), claimName, pvName);
             V1Pod pvPod = null;
             try {
-              pvPod = Kubernetes.createPVPod(namespace, pvc.getMetadata().getName());
-              if (isPodRunning("pv-pod", null, namespace)) {
-                Kubernetes.copyDirectoryFromPod(pvPod, path, resultDir);
-                Kubernetes.deletePVPod(namespace);
-                pvPod = null;
-              }
+              pvPod = createPVPod(namespace, claimName);
+              Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
             } catch (Exception ex) {
-              logger.severe(ex.getMessage());
+              logger.severe("Failed to archive persistent volume contents");
             } finally {
               if (pvPod != null) {
-                Kubernetes.deletePVPod(namespace);
+                deletePVPod(namespace);
               }
             }
           }
@@ -211,6 +214,64 @@ public class LoggingUtil {
     } else {
       logger.info("Nothing to write in {0} list is empty", Paths.get(resultDir, fileName));
     }
+  }
+
+  /**
+   * Create a nginx pod named "pv-pod" with persistent volume from claimName param.
+   *
+   * @param namespace name of the namespace
+   * @param claimName persistent volume claim name
+   * @return V1Pod object
+   * @throws ApiException when create pod fails
+   */
+  public static V1Pod createPVPod(String namespace, String claimName) throws ApiException {
+    V1Pod pvPod;
+    V1Pod podBody = new V1Pod()
+        .spec(new V1PodSpec()
+            .containers(Arrays.asList(
+                new V1Container()
+                    .name("pv-container")
+                    .image("nginx")
+                    .imagePullPolicy("IfNotPresent")
+                    .volumeMounts(Arrays.asList(
+                        new V1VolumeMount()
+                            .name("weblogic-domain-storage-volume")
+                            .mountPath("/shared")))))
+            .volumes(Arrays.asList(
+                new V1Volume()
+                    .name("weblogic-domain-storage-volume")
+                    .persistentVolumeClaim(
+                        new V1PersistentVolumeClaimVolumeSource()
+                            .claimName(claimName)))))
+        .metadata(new V1ObjectMeta().name("pv-pod"))
+        .apiVersion("v1")
+        .kind("Pod");
+    pvPod = Kubernetes.createPod(namespace, podBody);
+
+    // wait for the pod to come up
+    ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
+        .and().with().pollInterval(5, SECONDS)
+        .atMost(1, MINUTES).await();
+
+    withStandardRetryPolicy
+        .conditionEvaluationListener(
+            condition -> logger.info("Waiting for pv-pod to be ready in namespace {0}, "
+                + "(elapsed time {1} , remaining time {2}",
+                namespace,
+                condition.getElapsedTimeInMS(),
+                condition.getRemainingTimeInMS()))
+        .until(podReady(namespace, null, "pv-pod"));
+    return pvPod;
+  }
+
+  /**
+   * Delete "pv-pod" pod.
+   *
+   * @param namespace name of the namespace
+   * @throws ApiException when delete fails
+   */
+  public static void deletePVPod(String namespace) throws ApiException {
+      Kubernetes.deletePod(namespace, "pv-pod");
   }
 
 }

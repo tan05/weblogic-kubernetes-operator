@@ -6,7 +6,6 @@ package oracle.weblogic.kubernetes.actions.impl.primitive;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -33,7 +32,6 @@ import io.kubernetes.client.openapi.models.V1ClusterRoleBindingList;
 import io.kubernetes.client.openapi.models.V1ClusterRoleList;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1ConfigMapList;
-import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1DeploymentList;
 import io.kubernetes.client.openapi.models.V1Job;
@@ -46,11 +44,9 @@ import io.kubernetes.client.openapi.models.V1ObjectMetaBuilder;
 import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimList;
-import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimVolumeSource;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
-import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1ReplicaSet;
 import io.kubernetes.client.openapi.models.V1ReplicaSetList;
 import io.kubernetes.client.openapi.models.V1RoleBindingList;
@@ -62,8 +58,6 @@ import io.kubernetes.client.openapi.models.V1ServiceAccount;
 import io.kubernetes.client.openapi.models.V1ServiceAccountList;
 import io.kubernetes.client.openapi.models.V1ServiceList;
 import io.kubernetes.client.openapi.models.V1Status;
-import io.kubernetes.client.openapi.models.V1Volume;
-import io.kubernetes.client.openapi.models.V1VolumeMount;
 import io.kubernetes.client.util.ClientBuilder;
 import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainList;
@@ -380,6 +374,25 @@ public class Kubernetes implements LoggedTest {
   }
 
   /**
+   * Create a pod.
+   *
+   * @param namespace name of the namespace
+   * @param podBody V1Pod object containing pod configuration data
+   * @return V1Pod object
+   * @throws ApiException when create pod fails
+   */
+  public static V1Pod createPod(String namespace, V1Pod podBody) throws ApiException {
+    V1Pod pvPod;
+    try {
+      pvPod = coreV1Api.createNamespacedPod(namespace, podBody, null, null, null);
+    } catch (ApiException apex) {
+      logger.severe(apex.getResponseBody());
+      throw apex;
+    }
+    return pvPod;
+  }
+
+  /**
    * Delete a Kubernetes Pod.
    *
    * @param name name of the pod
@@ -437,6 +450,20 @@ public class Kubernetes implements LoggedTest {
       throw apex;
     }
     return v1PodList;
+  }
+
+  /**
+   * Copy a directory from Kubernetes pod to destination path.
+   * @param pod V1Pod object
+   * @param srcPath source directory location
+   * @param destination destination directory path
+   * @throws IOException when copy fails
+   * @throws ApiException when pod interaction fails
+   */
+  public static void copyDirectoryFromPod(V1Pod pod, String srcPath, Path destination)
+      throws IOException, ApiException {
+    Copy copy = new Copy();
+    copy.copyDirectoryFromPod(pod, srcPath, destination);
   }
 
   // --------------------------- namespaces -----------------------------------
@@ -1828,75 +1855,6 @@ public class Kubernetes implements LoggedTest {
 
   // --------------------------- Copy   ---------------------------
 
-  /**
-   * Copy a directory from Kubernetes pod to destination path.
-   * @param pod V1Pod object
-   * @param srcPath source directory location
-   * @param destination destination directory path
-   * @throws IOException when copy fails
-   * @throws ApiException when pod interaction fails
-   */
-  public static void copyDirectoryFromPod(V1Pod pod, String srcPath, Path destination)
-      throws IOException, ApiException {
-    Copy copy = new Copy();
-    copy.copyDirectoryFromPod(pod, srcPath, destination);
-  }
 
-
-  /**
-   * Create a nginx pod named "pv-pod".
-   *
-   * @param namespace name of the namespace
-   * @param claimName persistent volume claim name
-   * @return V1Pod object
-   * @throws ApiException when create pod fails
-   */
-  public static V1Pod createPVPod(String namespace, String claimName) throws ApiException {
-
-    V1Pod pod = new V1Pod()
-        .spec(new V1PodSpec()
-            .containers(Arrays.asList(
-                new V1Container()
-                    .name("pv-container")
-                    .image("nginx")
-                    .imagePullPolicy("IfNotPresent")
-                    .volumeMounts(Arrays.asList(
-                        new V1VolumeMount()
-                            .mountPath("/sharedpv")
-                            .name("pvpod-mount")))))
-            .volumes(Arrays.asList(
-                new V1Volume().name("pv-pod-volume").persistentVolumeClaim(
-                    new V1PersistentVolumeClaimVolumeSource().claimName(claimName)))))
-        .metadata(new V1ObjectMeta().name("pv-pod"))
-        .apiVersion("v1")
-        .kind("Pod");
-    logger.warning(dump(pod));
-
-    return coreV1Api.createNamespacedPod(namespace, pod, null, null, null);
-  }
-
-  /**
-   * Delete the PV collector pod.
-   *
-   * @param namespace name of the namespace
-   * @throws ApiException when delete fails
-   */
-  public static void deletePVPod(String namespace) throws ApiException {
-    try {
-      coreV1Api.deleteNamespacedPod(
-          "pv-pod",
-          namespace,
-          PRETTY,
-          null,
-          GRACE_PERIOD,
-          null,
-          FOREGROUND,
-          null
-      );
-    } catch (ApiException apex) {
-      logger.severe(apex.getResponseBody());
-      throw apex;
-    }
-  }
 
 }
