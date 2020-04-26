@@ -129,6 +129,7 @@ public class LoggingUtil {
               Files.createDirectories(
                   Paths.get(resultDir.toString(), claimName, pvName)));
         }
+        logger.info("Done iterating through the pvs");
       }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
@@ -230,7 +231,7 @@ public class LoggingUtil {
 
       // wait for the copy task to complete in a minute
       ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
-          .and().with().pollInterval(5, SECONDS)
+          .and().with().pollInterval(15, SECONDS)
           .atMost(1, MINUTES).await();
       withStandardRetryPolicy
           .conditionEvaluationListener(
