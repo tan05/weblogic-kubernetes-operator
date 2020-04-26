@@ -134,7 +134,11 @@ public class LoggingUtil {
               logger.info("Copying pv.tar.tar...");
               Copy.copyFileFromPod(namespace, "pv-pod", "/shared/pv.tar", destinationPath);
               logger.info("Done copying.");
-            } catch (Exception ex) {
+            } catch (ApiException ex) {
+              logger.severe(ex.getResponseBody());
+              logger.severe("Failed to archive persistent volume contents");
+            } catch (IOException ex) {
+              logger.severe(ex.getMessage());
               logger.severe("Failed to archive persistent volume contents");
             } finally {
               if (pvPod != null) {
@@ -268,6 +272,7 @@ public class LoggingUtil {
                 condition.getElapsedTimeInMS(),
                 condition.getRemainingTimeInMS()))
         .until(podReady("pv-pod", null, namespace));
+    logger.info("pv-pod ready.");
     return pvPod;
   }
 
