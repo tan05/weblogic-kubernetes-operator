@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import io.kubernetes.client.Copy;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -126,7 +127,13 @@ public class LoggingUtil {
             V1Pod pvPod = null;
             try {
               pvPod = createPVPod(namespace, claimName);
-              Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
+              logger.info("Copying from PV...");
+              //Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
+              logger.info("Copying logs.tar...");
+              Copy.copyFileFromPod(namespace, "pv-pod", "/shared/logs.tar", destinationPath);
+              logger.info("Copying pv.tar.tar...");
+              Copy.copyFileFromPod(namespace, "pv-pod", "/shared/pv.tar", destinationPath);
+              logger.info("Done copying.");
             } catch (Exception ex) {
               logger.severe("Failed to archive persistent volume contents");
             } finally {
@@ -260,7 +267,7 @@ public class LoggingUtil {
                 namespace,
                 condition.getElapsedTimeInMS(),
                 condition.getRemainingTimeInMS()))
-        .until(podReady(namespace, null, "pv-pod"));
+        .until(podReady("pv-pod", null, namespace));
     return pvPod;
   }
 
