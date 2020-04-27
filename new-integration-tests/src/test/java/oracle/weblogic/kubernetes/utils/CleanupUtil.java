@@ -159,8 +159,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("DomainList is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -176,8 +174,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("ReplicaSet is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -193,8 +189,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("JobList is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -210,8 +204,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("ConfigMap list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -227,8 +219,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Secret list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -244,8 +234,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Persistent Volume Claims list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -271,10 +259,7 @@ public class CleanupUtil {
               logger.info(pv.getMetadata().getName());
             }
             doesnotExist = false;
-          } else {
-            logger.info("Persistent Volume List is empty");
           }
-
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -290,8 +275,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Deployment list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -307,8 +290,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Services list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -324,8 +305,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Service Account list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -341,8 +320,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Ingress Extensions list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -358,8 +335,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Namespaced role list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -375,8 +350,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Namespaced role bindings list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -392,8 +365,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Cluster Roles list is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -409,8 +380,6 @@ public class CleanupUtil {
             logger.info(item.getMetadata().getName());
           }
           doesnotExist = false;
-        } else {
-          logger.info("Cluster RoleBindings is empty");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -426,8 +395,6 @@ public class CleanupUtil {
             logger.info(item);
           }
           doesnotExist = false;
-        } else {
-          logger.info("Namespace doesn't exist");
         }
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
@@ -565,7 +532,7 @@ public class CleanupUtil {
       logger.warning(ex.getMessage());
       logger.warning("Failed to delete namespaced rolebindings");
     }
-    
+
     // Delete service accounts
     try {
       for (var item : Kubernetes.listServiceAccounts(namespace).getItems()) {
