@@ -75,8 +75,9 @@ public class CleanupUtil {
       // Delete all the artifacts
       for (var namespace : namespaces) {
         deleteNamespacedArtifacts(namespace);
-        deleteClusterArtifacts();
       }
+      deleteClusterArtifacts();
+
       // wait for the artifacts to be deleted, waiting for a maximum of 3 minutes
       ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
           .and().with().pollInterval(10, SECONDS)

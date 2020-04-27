@@ -23,6 +23,7 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
+import oracle.weblogic.kubernetes.TestConstants;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import org.awaitility.core.ConditionFactory;
 
@@ -37,12 +38,6 @@ import static org.awaitility.Awaitility.with;
  * A utility class to collect logs for artifacts in Kubernetes cluster.
  */
 public class LoggingUtil {
-
-  /**
-   * Directory to store logs. In Jenkins it is set to RESULT_ROOT, for local runs it is set to tmp.
-   */
-  private static final String LOGS_DIR = System.getenv().getOrDefault("RESULT_ROOT",
-        System.getProperty("java.io.tmpdir"));
 
   /**
    * Collect logs for artifacts in Kubernetes cluster for current running test object. This method can be called
@@ -60,7 +55,7 @@ public class LoggingUtil {
     String resultDirExt = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
     try {
       Path resultDir = Files.createDirectories(
-          Paths.get(LOGS_DIR, itInstance.getClass().getSimpleName(),
+          Paths.get(TestConstants.LOGS_DIR, itInstance.getClass().getSimpleName(),
               resultDirExt));
       for (var namespace : namespaces) {
         LoggingUtil.generateLog((String) namespace, resultDir.toString());
@@ -104,17 +99,17 @@ public class LoggingUtil {
       logger.warning(ex.getMessage());
     }
 
-    // get pv configuration and pv files based on the weblogic.domainUID label in pvc
+    // get pv configuration and pv files based on the weblogic.domainUid label in pvc
     try {
       for (var pvc : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
         String label = Optional.ofNullable(pvc)
             .map(metadata -> metadata.getMetadata())
             .map(labels -> labels.getLabels())
-            .map(labels -> labels.get("weblogic.domainUID")).get();
+            .map(labels -> labels.get("weblogic.domainUid")).get();
 
-        // get the persistent volumes based on label weblogic.domainUID
+        // get the persistent volumes based on label weblogic.domainUid
         V1PersistentVolumeList pvList = Kubernetes
-            .listPersistentVolumes(String.format("weblogic.domainUID = %s", label));
+            .listPersistentVolumes(String.format("weblogic.domainUid = %s", label));
         // write the persistent volume configurations to log
         writeToFile(pvList, resultDir, label + "_pv.log");
 

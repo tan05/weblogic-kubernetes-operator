@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import oracle.weblogic.kubernetes.TestConstants;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.utils.CleanupUtil;
 import oracle.weblogic.kubernetes.utils.LoggingUtil;
@@ -58,12 +59,6 @@ public class IntegrationTestWatcher implements
   private String methodName;
   private List namespaces = null;
   private static final String START_TIME = "start time";
-
-  /**
-   * Directory to store logs. In Jenkins it is set to RESULT_ROOT, for local runs it is set to tmp.
-   */
-  private static final String LOGS_DIR = System.getenv().getOrDefault("RESULT_ROOT",
-        System.getProperty("java.io.tmpdir"));
 
   /**
    * Determine if this resolver supports resolution of an argument for the
@@ -301,7 +296,7 @@ public class IntegrationTestWatcher implements
     logger.info("Starting test suite cleanup");
     CleanupUtil.cleanup(namespaces);
   }
-  
+
 
   /**
    * Gets called when any exception is thrown in afterAll and collects logs.
@@ -332,7 +327,7 @@ public class IntegrationTestWatcher implements
     }
     Path resultDir = null;
     try {
-      resultDir = Files.createDirectories(Paths.get(LOGS_DIR,
+      resultDir = Files.createDirectories(Paths.get(TestConstants.LOGS_DIR,
               extensionContext.getRequiredTestClass().getSimpleName(),
               getExtDir(extensionContext, failedStage)));
     } catch (IOException ex) {
