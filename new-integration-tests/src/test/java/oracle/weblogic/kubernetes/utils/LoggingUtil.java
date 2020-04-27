@@ -176,6 +176,13 @@ public class LoggingUtil {
       logger.warning("Listing domain failed, not collecting any data for domain");
     }
 
+    // get pods
+    try {
+      writeToFile(Kubernetes.listPods(namespace, null), resultDir, namespace + "_pods.log");
+    } catch (Exception ex) {
+      logger.warning("Listing pods failed, not collecting any data for pod configuration");
+    }
+
     // get domain/operator pods
     try {
       for (var pod : Kubernetes.listPods(namespace, null).getItems()) {
