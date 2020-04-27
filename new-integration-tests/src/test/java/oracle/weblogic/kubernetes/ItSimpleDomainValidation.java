@@ -117,7 +117,6 @@ class ItSimpleDomainValidation implements LoggedTest {
             .hostPath(new V1HostPathVolumeSource().path(hostPath)))
         .metadata(new V1ObjectMetaBuilder()
             .withName(pvName)
-            .withNamespace(namespace)
             .build()
             .putLabelsItem("weblogic.resourceVersion", "domain-v2")
             .putLabelsItem("weblogic.domainUid", domainUid));

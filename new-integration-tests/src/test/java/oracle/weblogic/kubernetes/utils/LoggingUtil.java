@@ -294,6 +294,7 @@ public class LoggingUtil {
         .metadata(new V1ObjectMeta().name("pv-pod-" + namespace))
         .apiVersion("v1")
         .kind("Pod");
+    logger.info(dump(podBody));
     pvPod = Kubernetes.createPod(namespace, podBody);
 
     // wait for the pod to come up
