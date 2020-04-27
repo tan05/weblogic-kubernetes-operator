@@ -28,7 +28,6 @@ import oracle.weblogic.kubernetes.actions.impl.primitive.HelmParams;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import org.awaitility.core.ConditionFactory;
 
-import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
@@ -563,8 +562,9 @@ public class CleanupUtil {
     logger.info("Deleting cluster artifacts");
     // Delete cluster roles
     try {
+      logger.info("Cluster Roles list");
       for (var item : Kubernetes.listClusterRoles("weblogic.operatorName").getItems()) {
-        logger.info(dump(item));
+        logger.info(item.getMetadata().getName());
         //Kubernetes.deleteClusterRole(item.getMetadata().getName());
       }
     } catch (Exception ex) {
@@ -574,8 +574,9 @@ public class CleanupUtil {
 
     // Delete cluster rolebindings
     try {
+      logger.info("Cluster Role Bindings list");
       for (var item : Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems()) {
-        logger.info(dump(item));
+        logger.info(item.getMetadata().getName());
         //Kubernetes.deleteClusterRoleBinding(item.getMetadata().getName());
       }
     } catch (Exception ex) {
