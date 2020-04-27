@@ -123,6 +123,7 @@ public class LoggingUtil {
           } catch (ApiException apex) {
             logger.warning(apex.getResponseBody());
           } catch (Exception ex) {
+            ex.printStackTrace();
             logger.warning(ex.getMessage());
           }
         }
@@ -251,7 +252,7 @@ public class LoggingUtil {
       logger.severe(apex.getResponseBody());
     } finally {
       // interrupt the copy thead
-      if (copypv.isAlive()) {
+      if (copypv != null && copypv.isAlive()) {
         logger.warning("Terminating the copy thread");
         copypv.interrupt();
       }

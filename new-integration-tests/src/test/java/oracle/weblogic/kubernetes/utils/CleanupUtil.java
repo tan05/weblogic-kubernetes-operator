@@ -9,7 +9,6 @@ import java.util.concurrent.Callable;
 
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.ExtensionsV1beta1Ingress;
-import io.kubernetes.client.openapi.models.V1ClusterRole;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1Job;
@@ -359,6 +358,7 @@ public class CleanupUtil {
         logger.warning("Failed to list namespaced role bindings");
       }
 
+      /*
       // check if cluster roles exist, check with selector 'weblogic.operatorName'
       try {
         if (!Kubernetes.listClusterRoles("weblogic.operatorName").getItems().isEmpty()) {
@@ -387,7 +387,7 @@ public class CleanupUtil {
       } catch (Exception ex) {
         logger.warning(ex.getMessage());
         logger.warning("Failed to list Cluster Role Bindings");
-      }
+      }*/
 
       // get namespaces
       try {
