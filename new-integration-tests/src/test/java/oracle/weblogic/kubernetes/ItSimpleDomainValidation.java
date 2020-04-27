@@ -60,7 +60,7 @@ class ItSimpleDomainValidation implements LoggedTest {
    * @param namespaces injected by Junit extension
    */
   @BeforeAll
-  public void setup(@Namespaces(1) List<String> namespaces) throws ApiException {
+  public void setup(@Namespaces(1) List<String> namespaces) throws ApiException, InterruptedException {
 
     List<String> list = Kubernetes.listNamespaces();
     for (String ns : list) {
@@ -72,10 +72,13 @@ class ItSimpleDomainValidation implements LoggedTest {
         } catch (Exception ex) {
           logger.severe(ex.getMessage());
         }
-
       } else {
         logger.info("Current test namespace, not deleting it");
       }
+    }
+    Thread.sleep(60000);
+    for (String ns : list) {
+      logger.info("Namespace : {0}", ns);
     }
     List<V1PersistentVolume> items = Kubernetes.listPersistentVolumes().getItems();
     for (V1PersistentVolume item : items) {
