@@ -28,6 +28,7 @@ import oracle.weblogic.kubernetes.actions.impl.primitive.HelmParams;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import org.awaitility.core.ConditionFactory;
 
+import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
@@ -76,6 +77,8 @@ public class CleanupUtil {
       for (var namespace : namespaces) {
         deleteNamespacedArtifacts(namespace);
       }
+      // If the tests are running in parallel how do we figure out
+      // which cluster artifacts are to be deleted.
       deleteClusterArtifacts();
 
       // wait for the artifacts to be deleted, waiting for a maximum of 3 minutes
@@ -561,7 +564,8 @@ public class CleanupUtil {
     // Delete cluster roles
     try {
       for (var item : Kubernetes.listClusterRoles("weblogic.operatorName").getItems()) {
-        Kubernetes.deleteClusterRole(item.getMetadata().getName());
+        logger.info(dump(item));
+        //Kubernetes.deleteClusterRole(item.getMetadata().getName());
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
@@ -571,7 +575,8 @@ public class CleanupUtil {
     // Delete cluster rolebindings
     try {
       for (var item : Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems()) {
-        Kubernetes.deleteClusterRoleBinding(item.getMetadata().getName());
+        logger.info(dump(item));
+        //Kubernetes.deleteClusterRoleBinding(item.getMetadata().getName());
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
