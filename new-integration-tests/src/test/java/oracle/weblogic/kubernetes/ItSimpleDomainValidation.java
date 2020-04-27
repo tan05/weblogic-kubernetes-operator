@@ -23,6 +23,7 @@ import oracle.weblogic.kubernetes.annotations.IntegrationTest;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.annotations.tags.Slow;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
+import oracle.weblogic.kubernetes.utils.LoggingUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,7 @@ class ItSimpleDomainValidation implements LoggedTest {
   V1ServiceAccount serviceAccount;
   String pvcName;
   String pvName;
+  private static List<String> tempList;
 
   /**
    * Setup for test suite. Creates service account, namespace, and persistent volumes.
@@ -55,6 +57,7 @@ class ItSimpleDomainValidation implements LoggedTest {
    */
   @BeforeAll
   public void setup(@Namespaces(1) List<String> namespaces) {
+    tempList = namespaces;
 
     // get a new unique namespace
     logger.info("Creating unique namespace for Operator");
@@ -158,6 +161,7 @@ class ItSimpleDomainValidation implements LoggedTest {
         .await().atMost(5, MINUTES)
         // operatorIsRunning() is one of our custom, reusable assertions
         .until(domainExists(domainUid, "v7", namespace));
+    LoggingUtil.collectLogs(this, tempList);
   }
 
 }
