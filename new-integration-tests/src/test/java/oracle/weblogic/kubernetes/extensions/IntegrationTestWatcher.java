@@ -9,10 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import oracle.weblogic.kubernetes.annotations.Namespaces;
+import oracle.weblogic.kubernetes.utils.CleanupUtil;
 import oracle.weblogic.kubernetes.utils.LoggingUtil;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -60,7 +60,7 @@ public class IntegrationTestWatcher implements
   private static final String START_TIME = "start time";
 
   /**
-   * Directory to store logs.
+   * Directory to store logs. In Jenkins it is set to RESULT_ROOT, for local runs it is set to tmp.
    */
   private static final String LOGS_DIR = System.getenv().getOrDefault("RESULT_ROOT",
         System.getProperty("java.io.tmpdir"));
@@ -296,10 +296,10 @@ public class IntegrationTestWatcher implements
   @Override
   public void afterAll(ExtensionContext context) {
     printHeader(String.format("Ending Test Suite %s", className), "+");
-    String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
-    namespaces = Arrays.asList(ns); //remove after debug
+    //String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
+    //namespaces = Arrays.asList(ns); //remove after debug
     logger.info("Starting test suite cleanup");
-    //CleanupUtil.cleanup(namespaces);
+    CleanupUtil.cleanup(namespaces);
   }
 
 
@@ -322,8 +322,8 @@ public class IntegrationTestWatcher implements
    * @param failedStage the stage in which the test failed
    */
   private void collectLogs(ExtensionContext extensionContext, String failedStage) {
-    String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
-    namespaces = Arrays.asList(ns); //remove after debug
+    //String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
+    //namespaces = Arrays.asList(ns); //remove after debug
     logger.info("Collecting logs...");
     if (namespaces == null || namespaces.isEmpty()) {
       logger.warning("Namespace list is empty, "
