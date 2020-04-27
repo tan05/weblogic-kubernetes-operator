@@ -62,6 +62,8 @@ import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainList;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
 
+import static io.kubernetes.client.util.Yaml.dump;
+
 
 // TODO ryan - in here we want to implement all of the kubernetes
 // primitives that we need, using the API, not spawning a process
@@ -582,6 +584,7 @@ public class Kubernetes implements LoggedTest {
     if (!response.isSuccess()) {
       logger.warning("Failed to delete namespace: "
           + name + " with HTTP status code: " + response.getHttpStatusCode());
+      logger.warning(dump(response.getStatus()));
       return false;
     }
 
