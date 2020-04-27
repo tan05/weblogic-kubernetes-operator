@@ -35,6 +35,7 @@ import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.annotations.tags.MustNotRunInParallel;
 import oracle.weblogic.kubernetes.annotations.tags.Slow;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
+import oracle.weblogic.kubernetes.utils.LoggingUtil;
 import org.awaitility.core.ConditionFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -111,6 +112,7 @@ class ItMiiDomain implements LoggedTest {
 
   private String domainUid = "domain1";
   private String miiImage = null;
+  private static List<String> tempList;
 
   /**
    * Install Operator.
@@ -119,6 +121,7 @@ class ItMiiDomain implements LoggedTest {
    */
   @BeforeAll
   public static void initAll(@Namespaces(2) List<String> namespaces) {
+    tempList = namespaces;
     // create standard, reusable retry/backoff policy
     withStandardRetryPolicy = with().pollDelay(2, SECONDS)
         .and().with().pollInterval(10, SECONDS)
@@ -371,6 +374,8 @@ class ItMiiDomain implements LoggedTest {
       checkServiceCreated(managedServerPrefix + i);
     }
 
+    LoggingUtil.collectLogs(this, tempList);
+
   }
 
   @AfterEach
@@ -388,7 +393,7 @@ class ItMiiDomain implements LoggedTest {
     }
 
   }
-  
+
   private String createImageAndVerify() {
     // create unique image name with date
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
