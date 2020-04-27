@@ -373,14 +373,14 @@ public class Kubernetes implements LoggedTest {
    * @throws ApiException when create pod fails
    */
   public static V1Pod createPod(String namespace, V1Pod podBody) throws ApiException {
-    V1Pod pvPod;
+    V1Pod pod;
     try {
-      pvPod = coreV1Api.createNamespacedPod(namespace, podBody, null, null, null);
+      pod = coreV1Api.createNamespacedPod(namespace, podBody, null, null, null);
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
     }
-    return pvPod;
+    return pod;
   }
 
   /**
@@ -467,7 +467,7 @@ public class Kubernetes implements LoggedTest {
     V1Namespace namespace = new V1NamespaceBuilder().withMetadata(meta).build();
 
     try {
-      namespace = coreV1Api.createNamespace(
+      coreV1Api.createNamespace(
           namespace, // name of the Namespace
           PRETTY, // pretty print output
           null, // indicates that modifications should not be persisted
@@ -1620,6 +1620,7 @@ public class Kubernetes implements LoggedTest {
    * Delete role in the Kubernetes cluster.
    *
    * @param name name of the cluster role to delete
+   * @return true if deletion is successful
    * @throws ApiException when delete fails
    */
   public static boolean deleteClusterRole(String name) throws ApiException {
@@ -1674,6 +1675,7 @@ public class Kubernetes implements LoggedTest {
    *
    * @param namespace name of the namespace
    * @param name name of the role to delete
+   * @return true if deletion is successful
    * @throws ApiException when delete fails
    */
   public static boolean deleteNamespacedRole(String namespace, String name) throws ApiException {
