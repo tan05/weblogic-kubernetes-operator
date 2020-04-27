@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static oracle.weblogic.kubernetes.actions.TestActions.createDomainCustomResource;
@@ -97,6 +98,7 @@ class ItSimpleDomainValidation implements LoggedTest {
             .build()
             .putLabelsItem("weblogic.resourceVersion", "domain-v2")
             .putLabelsItem("weblogic.domainUid", domainUid));
+    logger.info(dump(v1pvc));
 
     boolean success = assertDoesNotThrow(
         () -> TestActions.createPersistentVolumeClaim(v1pvc),
@@ -119,6 +121,7 @@ class ItSimpleDomainValidation implements LoggedTest {
             .build()
             .putLabelsItem("weblogic.resourceVersion", "domain-v2")
             .putLabelsItem("weblogic.domainUid", domainUid));
+    logger.info(dump(v1pv));
     success = assertDoesNotThrow(
         () -> TestActions.createPersistentVolume(v1pv),
         "Persistent volume creation failed, "
