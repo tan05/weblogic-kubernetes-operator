@@ -302,7 +302,7 @@ public class Kubernetes implements LoggedTest {
   public static boolean deleteDeployment(String namespace, String name) throws ApiException {
     try {
       AppsV1Api apiInstance = new AppsV1Api(apiClient);
-      V1Status status = apiInstance.deleteNamespacedDeployment(
+      apiInstance.deleteNamespacedDeployment(
           name, // String | deployment object name.
           namespace, // String | namespace in which the deployment exists.
           PRETTY, // String | If 'true', then the output is pretty printed.
@@ -1345,7 +1345,7 @@ public class Kubernetes implements LoggedTest {
    * List services in a given namespace.
    *
    * @param namespace name of the namespace
-   * @return V1ServiceList list of link{@V1Service} objects
+   * @return V1ServiceList list of {@link V1Service} objects
    */
   public static V1ServiceList listServices(String namespace) {
 
@@ -1354,7 +1354,7 @@ public class Kubernetes implements LoggedTest {
       return list.getObject();
     } else {
       logger.warning("Failed to list services, status code {0}", list.getHttpStatusCode());
-      return new V1ServiceList();
+      return null;
     }
   }
 
@@ -1371,7 +1371,7 @@ public class Kubernetes implements LoggedTest {
   public static boolean deleteJob(String namespace, String name) throws ApiException {
     try {
       BatchV1Api apiInstance = new BatchV1Api(apiClient);
-      V1Status status = apiInstance.deleteNamespacedJob(
+      apiInstance.deleteNamespacedJob(
           name, // String | name of the job.
           namespace, // String | name of the namespace.
           PRETTY, // String | pretty print output.
@@ -1392,7 +1392,7 @@ public class Kubernetes implements LoggedTest {
    * List jobs in the given namespace.
    *
    * @param namespace in which to list the jobs
-   * @return V1JobList list of link{@V1Job} from Kubernetes cluster
+   * @return V1JobList list of {@link V1Job} from Kubernetes cluster
    * @throws ApiException when list fails
    */
   public static V1JobList listJobs(String namespace) throws ApiException {
@@ -1454,7 +1454,7 @@ public class Kubernetes implements LoggedTest {
    * List replica sets in the given namespace.
    *
    * @param namespace in which to list the replica sets
-   * @return V1ReplicaSetList list of link{@V1ReplicaSet} objects
+   * @return V1ReplicaSetList list of {@link V1ReplicaSet} objects
    * @throws ApiException when list fails
    */
   public static V1ReplicaSetList listReplicaSets(String namespace) throws ApiException {
@@ -1534,7 +1534,7 @@ public class Kubernetes implements LoggedTest {
    * List cluster role bindings.
    *
    * @param labelSelector labels to narrow the list
-   * @return V1RoleBindingList list of link{@V1RoleBinding} objects
+   * @return V1RoleBindingList list of {@link V1RoleBinding} objects
    * @throws ApiException when listing fails
    */
   public static V1RoleBindingList listClusterRoleBindings(String labelSelector) throws ApiException {
@@ -1569,7 +1569,7 @@ public class Kubernetes implements LoggedTest {
   public static boolean deleteNamespacedRoleBinding(String namespace, String name)
       throws ApiException {
     try {
-      V1Status status = rbacAuthApi.deleteNamespacedRoleBinding(
+      rbacAuthApi.deleteNamespacedRoleBinding(
           name, // String | name of the job.
           namespace, // String | name of the namespace.
           PRETTY, // String | pretty print output.
@@ -1590,7 +1590,7 @@ public class Kubernetes implements LoggedTest {
    * List role bindings in a given name space.
    *
    * @param namespace name of the namespace
-   * @return V1RoleBindingList list of link{@V1RoleBinding} objects
+   * @return V1RoleBindingList list of {@link V1RoleBinding} objects
    * @throws ApiException when listing fails
    */
   public static V1RoleBindingList listNamespacedRoleBinding(String namespace)
@@ -1646,7 +1646,7 @@ public class Kubernetes implements LoggedTest {
    * List roles in the Kubernetes cluster.
    *
    * @param labelSelector labels to narrow the list
-   * @return V1ClusterRoleList list of link{@V1ClusterRole} objects
+   * @return V1ClusterRoleList list of {@link V1ClusterRole} objects
    * @throws ApiException when listing fails
    */
   public static V1ClusterRoleList listClusterRoles(String labelSelector) throws ApiException {
@@ -1700,7 +1700,7 @@ public class Kubernetes implements LoggedTest {
    * List roles in a given namespace.
    *
    * @param namespace name of the namespace
-   * @return V1RoleList list of link{@V1Role} object
+   * @return V1RoleList list of {@link V1Role} object
    * @throws ApiException when listing fails
    */
   public static V1RoleList listNamespacedRole(String namespace) throws ApiException {
@@ -1729,7 +1729,7 @@ public class Kubernetes implements LoggedTest {
    * List Ingress extensions in the given namespace.
    *
    * @param namespace name of the namespace
-   * @return ExtensionsV1beta1IngressList list of link{@ExtensionsV1beta1Ingress} objects
+   * @return ExtensionsV1beta1IngressList list of {@link ExtensionsV1beta1Ingress} objects
    * @throws ApiException when listing fails
    */
   public static ExtensionsV1beta1IngressList listIngressExtensions(String namespace) throws ApiException {
