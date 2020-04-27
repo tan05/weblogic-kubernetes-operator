@@ -296,6 +296,7 @@ public class LoggingUtil {
         .kind("Pod");
     logger.info(dump(podBody));
     pvPod = Kubernetes.createPod(namespace, podBody);
+    logger.info(dump(pvPod));
 
     // wait for the pod to come up
     ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
