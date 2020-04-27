@@ -275,15 +275,15 @@ public class LoggingUtil {
                     .imagePullPolicy("IfNotPresent")
                     .volumeMounts(Arrays.asList(
                         new V1VolumeMount()
-                            .name("weblogic-domain-storage-volume")
+                            .name("weblogic-domain-storage-volume-" + namespace)
                             .mountPath("/shared")))))
             .volumes(Arrays.asList(
                 new V1Volume()
-                    .name("weblogic-domain-storage-volume")
+                    .name("weblogic-domain-storage-volume-" + namespace)
                     .persistentVolumeClaim(
                         new V1PersistentVolumeClaimVolumeSource()
                             .claimName(claimName))))) // this gives access to the PV of WebLogic domain pods
-        .metadata(new V1ObjectMeta().name("pv-pod"))
+        .metadata(new V1ObjectMeta().name("pv-pod-" + namespace))
         .apiVersion("v1")
         .kind("Pod");
     pvPod = Kubernetes.createPod(namespace, podBody);
@@ -300,7 +300,7 @@ public class LoggingUtil {
                 namespace,
                 condition.getElapsedTimeInMS(),
                 condition.getRemainingTimeInMS()))
-        .until(podReady("pv-pod", null, namespace));
+        .until(podReady("pv-pod-" + namespace, null, namespace));
     logger.info("pv-pod ready.");
     return pvPod;
   }
@@ -312,7 +312,7 @@ public class LoggingUtil {
    * @throws ApiException when delete fails
    */
   private static void deletePVPod(String namespace) throws ApiException {
-    Kubernetes.deletePod("pv-pod", namespace);
+    Kubernetes.deletePod("pv-pod-" + namespace, namespace);
   }
 
   /**

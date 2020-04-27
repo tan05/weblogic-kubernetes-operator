@@ -122,6 +122,7 @@ class ItMiiDomain implements LoggedTest {
   @BeforeAll
   public static void initAll(@Namespaces(2) List<String> namespaces) {
     tempList = namespaces;
+    logger.info(tempList.toString());
     // create standard, reusable retry/backoff policy
     withStandardRetryPolicy = with().pollDelay(2, SECONDS)
         .and().with().pollInterval(10, SECONDS)
