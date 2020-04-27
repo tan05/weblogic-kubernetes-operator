@@ -80,7 +80,8 @@ public class CleanupUtil {
       deleteClusterArtifacts();
 
       // wait for the artifacts to be deleted, waiting for a maximum of 3 minutes
-      ConditionFactory withStandardRetryPolicy = with().pollDelay(30, SECONDS)
+      Thread.sleep(30 * 1000);
+      ConditionFactory withStandardRetryPolicy = with().pollDelay(0, SECONDS)
           .and().with().pollInterval(10, SECONDS)
           .atMost(3, MINUTES).await();
 
