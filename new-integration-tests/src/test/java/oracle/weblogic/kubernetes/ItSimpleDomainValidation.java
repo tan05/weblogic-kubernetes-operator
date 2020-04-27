@@ -65,15 +65,17 @@ class ItSimpleDomainValidation implements LoggedTest {
     List<String> list = Kubernetes.listNamespaces();
     for (String ns : list) {
       logger.info("Namespace : {0}", ns);
-      /*
-      if (ns.startsWith("ns-")) {
+      if (ns.startsWith("ns-") && !namespaces.get(0).equals(ns)) {
         logger.info("Deleting namespace {0}", ns);
         try {
           Kubernetes.deleteNamespace(ns);
         } catch (Exception ex) {
           logger.severe(ex.getMessage());
         }
-      }*/
+
+      } else {
+        logger.info("Current test namespace, not deleting it");
+      }
     }
     List<V1PersistentVolume> items = Kubernetes.listPersistentVolumes().getItems();
     for (V1PersistentVolume item : items) {
