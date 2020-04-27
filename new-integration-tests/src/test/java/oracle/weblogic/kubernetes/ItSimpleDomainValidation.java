@@ -3,6 +3,9 @@
 
 package oracle.weblogic.kubernetes;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 import io.kubernetes.client.custom.Quantity;
@@ -56,7 +59,7 @@ class ItSimpleDomainValidation implements LoggedTest {
    * @param namespaces injected by Junit extension
    */
   @BeforeAll
-  public void setup(@Namespaces(1) List<String> namespaces) {
+  public void setup(@Namespaces(1) List<String> namespaces) throws IOException {
     tempList = namespaces;
 
     // get a new unique namespace
@@ -74,6 +77,12 @@ class ItSimpleDomainValidation implements LoggedTest {
     // create persistent volume and persistent volume claim
     pvcName = domainUid + "-pvc"; // name of the persistent volume claim
     pvName = domainUid + "-pv"; // name of the persistent volume
+    String hostPath = System.getenv()
+        .getOrDefault("PV_ROOT",
+            System.getProperty("java.io.tmpdir"))
+        + "/" + this.getClass().getSimpleName()
+        + "/" + domainUid + "-persistentVolume";
+    Files.createDirectories(Paths.get(hostPath));
 
     V1PersistentVolumeClaim v1pvc = new V1PersistentVolumeClaim()
         .spec(new V1PersistentVolumeClaimSpec()
@@ -103,12 +112,7 @@ class ItSimpleDomainValidation implements LoggedTest {
             .volumeMode("Filesystem")
             .putCapacityItem("storage", Quantity.fromString("10Gi"))
             .persistentVolumeReclaimPolicy("Recycle")
-            .hostPath(new V1HostPathVolumeSource()
-                .path(System.getenv()
-                    .getOrDefault("PV_ROOT",
-                        System.getProperty("java.io.tmpdir"))
-                    + "/" + this.getClass().getSimpleName()
-                    + "/" + domainUid + "-persistentVolume")))
+            .hostPath(new V1HostPathVolumeSource().path(hostPath)))
         .metadata(new V1ObjectMetaBuilder()
             .withName(pvName)
             .withNamespace(namespace)
