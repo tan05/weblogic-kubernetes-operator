@@ -301,7 +301,7 @@ public class IntegrationTestWatcher implements
     logger.info("Starting test suite cleanup");
     CleanupUtil.cleanup(namespaces);
   }
-
+  
 
   /**
    * Gets called when any exception is thrown in afterAll and collects logs.

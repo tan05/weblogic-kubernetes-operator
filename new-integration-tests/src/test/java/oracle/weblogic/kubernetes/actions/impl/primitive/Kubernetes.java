@@ -577,7 +577,7 @@ public class Kubernetes implements LoggedTest {
    */
   public static boolean deleteNamespace(String name) {
 
-    KubernetesApiResponse<V1Namespace> response = namespaceClient.delete(name, deleteOptions);
+    KubernetesApiResponse<V1Namespace> response = namespaceClient.delete(name);
 
     if (!response.isSuccess()) {
       logger.warning("Failed to delete namespace: "

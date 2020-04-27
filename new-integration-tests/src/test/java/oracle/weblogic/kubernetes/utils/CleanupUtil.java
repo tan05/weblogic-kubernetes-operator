@@ -51,6 +51,12 @@ public class CleanupUtil {
    */
   public static void cleanup(List<String> namespaces) {
     try {
+      // If namespace list is empty or null,
+      // just delete the non namespaced artifacts and return
+      if (namespaces == null || namespaces.isEmpty()) {
+        deleteClusterArtifacts();
+        return;
+      }
       // iterate through the namespaces and delete domain as a
       // first entity if its not operator namespace
       for (var namespace : namespaces) {
@@ -68,7 +74,7 @@ public class CleanupUtil {
 
       // Delete all the artifacts in the list of namespaces.
       for (var namespace : namespaces) {
-        deleteArtifacts(namespace);
+        deleteNamespacedArtifacts(namespace);
       }
       // wait for the artifacts to be deleted, waiting for a maximum of 3 minutes
       ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
@@ -437,7 +443,7 @@ public class CleanupUtil {
    *
    * @param namespace name of the namespace
    */
-  public static void deleteArtifacts(String namespace) {
+  public static void deleteNamespacedArtifacts(String namespace) {
     logger.info("Deleting artifacts in namespace {0}", namespace);
 
     // Delete all Domain objects in given namespace
@@ -539,26 +545,6 @@ public class CleanupUtil {
       logger.warning("Failed to delete services");
     }
 
-    // Delete cluster roles
-    try {
-      for (var item : Kubernetes.listClusterRoles("weblogic.operatorName").getItems()) {
-        Kubernetes.deleteClusterRole(item.getMetadata().getName());
-      }
-    } catch (Exception ex) {
-      logger.warning(ex.getMessage());
-      logger.warning("Failed to delete cluster roles");
-    }
-
-    // Delete cluster rolebindings
-    try {
-      for (var item : Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems()) {
-        Kubernetes.deleteClusterRoleBinding(item.getMetadata().getName());
-      }
-    } catch (Exception ex) {
-      logger.warning(ex.getMessage());
-      logger.warning("Failed to delete cluster rolebindings");
-    }
-
     // Delete namespaced roles
     try {
       for (var item : Kubernetes.listNamespacedRole(namespace).getItems()) {
@@ -579,6 +565,9 @@ public class CleanupUtil {
       logger.warning("Failed to delete namespaced rolebindings");
     }
 
+    // delete non namespaced artifacts. Cluster roles and role bindings.
+    deleteClusterArtifacts();
+
     // Delete service accounts
     try {
       for (var item : Kubernetes.listServiceAccounts(namespace).getItems()) {
@@ -594,6 +583,33 @@ public class CleanupUtil {
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
       logger.warning("Failed to delete namespace");
+    }
+  }
+
+  /**
+   * Deletes non name spaced artifacts in the Kubernetes cluster.
+   *
+   */
+  public static void deleteClusterArtifacts() {
+    logger.info("Deleting cluster artifacts in namespace");
+    // Delete cluster roles
+    try {
+      for (var item : Kubernetes.listClusterRoles("weblogic.operatorName").getItems()) {
+        Kubernetes.deleteClusterRole(item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to delete cluster roles");
+    }
+
+    // Delete cluster rolebindings
+    try {
+      for (var item : Kubernetes.listClusterRoleBindings("weblogic.operatorName").getItems()) {
+        Kubernetes.deleteClusterRoleBinding(item.getMetadata().getName());
+      }
+    } catch (Exception ex) {
+      logger.warning(ex.getMessage());
+      logger.warning("Failed to delete cluster rolebindings");
     }
   }
 
