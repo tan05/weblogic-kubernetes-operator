@@ -57,7 +57,6 @@ import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServiceAccount;
 import io.kubernetes.client.openapi.models.V1ServiceAccountList;
 import io.kubernetes.client.openapi.models.V1ServiceList;
-import io.kubernetes.client.openapi.models.V1Status;
 import io.kubernetes.client.util.ClientBuilder;
 import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainList;
@@ -1433,7 +1432,7 @@ public class Kubernetes implements LoggedTest {
   public static boolean deleteReplicaSet(String namespace, String name) throws ApiException {
     try {
       AppsV1Api apiInstance = new AppsV1Api(apiClient);
-      V1Status status = apiInstance.deleteNamespacedReplicaSet(
+      apiInstance.deleteNamespacedReplicaSet(
           name, // String | name of the replica set.
           namespace, // String | name of the namespace.
           PRETTY, // String | pretty print output.
