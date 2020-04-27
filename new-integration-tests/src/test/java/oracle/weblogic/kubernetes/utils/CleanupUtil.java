@@ -502,6 +502,8 @@ public class CleanupUtil {
           Kubernetes.deletePv(pv.getMetadata().getName());
         }
       }
+    } catch (ApiException ex) {
+      logger.warning(ex.getResponseBody());
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
       logger.warning("Failed to delete persistent volumes");
