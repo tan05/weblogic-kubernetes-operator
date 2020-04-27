@@ -106,6 +106,11 @@ public class LoggingUtil {
       logger.warning("Listing domain failed, not collecting any data for domain");
     }
     // get all Domain objects in given namespace
+    try {
+      writeToFile(Kubernetes.listPods(namespace, null), resultDir.toString(), namespace + "_all_pods.log");
+    } catch (Exception ex) {
+      logger.warning("Listing pods failed, not collecting any data for pods");
+    }
 
 
     // get domain/operator pods

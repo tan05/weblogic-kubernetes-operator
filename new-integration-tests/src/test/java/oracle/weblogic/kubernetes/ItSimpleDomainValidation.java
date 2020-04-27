@@ -64,6 +64,8 @@ class ItSimpleDomainValidation implements LoggedTest {
 
     List<String> list = Kubernetes.listNamespaces();
     for (String ns : list) {
+      logger.info("Namespace : {0}", ns);
+      /*
       if (ns.startsWith("ns-")) {
         logger.info("Deleting namespace {0}", ns);
         try {
@@ -71,7 +73,7 @@ class ItSimpleDomainValidation implements LoggedTest {
         } catch (Exception ex) {
           logger.severe(ex.getMessage());
         }
-      }
+      }*/
     }
     List<V1PersistentVolume> items = Kubernetes.listPersistentVolumes().getItems();
     for (V1PersistentVolume item : items) {
