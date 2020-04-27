@@ -62,7 +62,6 @@ import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainList;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
 
-import static io.kubernetes.client.util.Yaml.dump;
 
 
 // TODO ryan - in here we want to implement all of the kubernetes
@@ -582,10 +581,16 @@ public class Kubernetes implements LoggedTest {
     KubernetesApiResponse<V1Namespace> response = namespaceClient.delete(name);
 
     if (!response.isSuccess()) {
-      logger.warning("Failed to delete namespace: "
-          + name + " with HTTP status code: " + response.getHttpStatusCode());
-      logger.warning(dump(response.getStatus()));
-      return false;
+      // status 409 means contents in the namespace being removed,
+      // once done namespace will be purged
+      if (response.getHttpStatusCode() == 409) {
+        logger.warning(response.getStatus().getMessage());
+        return false;
+      } else {
+        logger.warning("Failed to delete namespace: "
+            + name + " with HTTP status code: " + response.getHttpStatusCode());
+        return false;
+      }
     }
 
     if (response.getObject() != null) {
