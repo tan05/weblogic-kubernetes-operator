@@ -49,8 +49,6 @@ public class LoggingUtil {
    * @param namespaces list of namespaces used by the test instance
    */
   public static void collectLogs(Object itInstance, List namespaces) {
-    String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
-    namespaces = Arrays.asList(ns); //remove after debug
     logger.info("Collecting logs...");
     String resultDirExt = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
     try {

@@ -291,9 +291,7 @@ public class IntegrationTestWatcher implements
   @Override
   public void afterAll(ExtensionContext context) {
     printHeader(String.format("Ending Test Suite %s", className), "+");
-    //String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
-    //namespaces = Arrays.asList(ns); //remove after debug
-    logger.info("Starting test suite cleanup");
+    logger.info("Starting cleanup after test class");
     CleanupUtil.cleanup(namespaces);
   }
 
@@ -317,8 +315,6 @@ public class IntegrationTestWatcher implements
    * @param failedStage the stage in which the test failed
    */
   private void collectLogs(ExtensionContext extensionContext, String failedStage) {
-    //String[] ns = {"itoperator-domainns-1", "itoperator-opns-1"}; //remove after debug
-    //namespaces = Arrays.asList(ns); //remove after debug
     logger.info("Collecting logs...");
     if (namespaces == null || namespaces.isEmpty()) {
       logger.warning("Namespace list is empty, "
