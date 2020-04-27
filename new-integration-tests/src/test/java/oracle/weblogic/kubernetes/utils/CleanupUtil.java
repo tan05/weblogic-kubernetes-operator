@@ -246,14 +246,14 @@ public class CleanupUtil {
           String label = Optional.ofNullable(item)
               .map(pvc -> pvc.getMetadata())
               .map(metadata -> metadata.getLabels())
-              .map(labels -> labels.get("weblogic.domainUID")).get();
+              .map(labels -> labels.get("weblogic.domainUid")).get();
 
           if (!Kubernetes.listPersistentVolumes(
-              String.format("weblogic.domainUID = %s", label))
+              String.format("weblogic.domainUid = %s", label))
               .getItems().isEmpty()) {
             logger.info("Persistent Volumes still exists!!!");
             List<V1PersistentVolume> pvs = Kubernetes.listPersistentVolumes(
-                String.format("weblogic.domainUID = %s", label))
+                String.format("weblogic.domainUid = %s", label))
                 .getItems();
             for (var pv : pvs) {
               logger.info(pv.getMetadata().getName());
@@ -470,9 +470,9 @@ public class CleanupUtil {
         String label = Optional.ofNullable(item)
             .map(pvc -> pvc.getMetadata())
             .map(metadata -> metadata.getLabels())
-            .map(labels -> labels.get("weblogic.domainUID")).get();
+            .map(labels -> labels.get("weblogic.domainUid")).get();
         for (var pv : Kubernetes.listPersistentVolumes(
-            String.format("weblogic.domainUID = %s", label)).getItems()) {
+            String.format("weblogic.domainUid = %s", label)).getItems()) {
           Kubernetes.deletePv(pv.getMetadata().getName());
         }
       }
