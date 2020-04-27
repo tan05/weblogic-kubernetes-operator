@@ -60,7 +60,28 @@ class ItSimpleDomainValidation implements LoggedTest {
    * @param namespaces injected by Junit extension
    */
   @BeforeAll
-  public void setup(@Namespaces(1) List<String> namespaces) {
+  public void setup(@Namespaces(1) List<String> namespaces) throws ApiException {
+
+    List<String> list = Kubernetes.listNamespaces();
+    for (String ns : list) {
+      if (ns.startsWith("ns-")) {
+        logger.info("Deleting namespace {0}", ns);
+        try {
+          Kubernetes.deleteNamespace(ns);
+        } catch (Exception ex) {
+          logger.severe(ex.getMessage());
+        }
+      }
+    }
+    List<V1PersistentVolume> items = Kubernetes.listPersistentVolumes().getItems();
+    for (V1PersistentVolume item : items) {
+      logger.info("Deleting PV {0}", item.getMetadata().getName());
+      try {
+        Kubernetes.deletePv(item.getMetadata().getName());
+      } catch (Exception ex) {
+        logger.severe(ex.getMessage());
+      }
+    }
 
     // get a new unique namespace
     logger.info("Creating unique namespace for Operator");
@@ -170,7 +191,7 @@ class ItSimpleDomainValidation implements LoggedTest {
    * Delete artifacts.
    */
   @AfterAll
-  public void cleanup() throws ApiException {
+  public void cleanup() {
 
     // Delete domain custom resource
     assertTrue(deleteDomainCustomResource(domainUid, namespace), "Domain failed to be deleted, "
@@ -196,19 +217,6 @@ class ItSimpleDomainValidation implements LoggedTest {
     assertTrue(TestActions.deleteNamespace(namespace), "Namespace failed to be deleted, "
         + "look at the above console log messages for failure reason in ApiException responsebody");
     logger.info("Deleted namespace: {0}", namespace);
-
-    List<String> list = Kubernetes.listNamespaces();
-    for (String ns : list) {
-      if (ns.startsWith("ns-")) {
-        logger.info("Deleting namespace {0}", ns);
-        Kubernetes.deleteNamespace(ns);
-      }
-    }
-    List<V1PersistentVolume> items = Kubernetes.listPersistentVolumes().getItems();
-    for (V1PersistentVolume item : items) {
-      logger.info("Deleting PV {0}", item.getMetadata().getName());
-      Kubernetes.deletePv(item.getMetadata().getName());
-    }
 
   }
 }
