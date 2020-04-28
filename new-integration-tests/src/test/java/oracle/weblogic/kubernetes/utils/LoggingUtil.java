@@ -247,8 +247,8 @@ public class LoggingUtil {
   }
 
   /**
-   * Create a nginx pod named "pv-pod" with persistent volume from claimName param.
-   * The claimName makes this pod to access the PV mount from PVS of interest
+   * Create a nginx pod named "pv-pod" with persistent volume from claimName param. The claimName makes this pod to
+   * access the PV mount from PVS of interest
    *
    * @param namespace name of the namespace
    * @param claimName persistent volume claim name
@@ -277,7 +277,6 @@ public class LoggingUtil {
             .withName(pvName)
             .build());
     TestActions.createPersistentVolume(v1pv);
-    logger.info(dump(v1pv));
 
     V1PersistentVolumeClaim v1pvc = new V1PersistentVolumeClaim()
         .spec(new V1PersistentVolumeClaimSpec()
@@ -291,7 +290,6 @@ public class LoggingUtil {
             .withNamespace(namespace)
             .build());
     TestActions.createPersistentVolumeClaim(v1pvc);
-    logger.info(dump(v1pvc));
 
     withStandardRetryPolicy
         .conditionEvaluationListener(
@@ -322,9 +320,7 @@ public class LoggingUtil {
         .metadata(new V1ObjectMeta().name(podName))
         .apiVersion("v1")
         .kind("Pod");
-    logger.info(dump(podBody));
     V1Pod pvPod = Kubernetes.createPod(namespace, podBody);
-    logger.info(dump(pvPod));
 
     withStandardRetryPolicy
         .conditionEvaluationListener(
@@ -334,23 +330,14 @@ public class LoggingUtil {
                 condition.getElapsedTimeInMS(),
                 condition.getRemainingTimeInMS()))
         .until(podReady("pv-pod-" + namespace, null, namespace));
-    logger.info("pv-pod ready.");
     return pvPod;
   }
 
-  /**
-   * Delete "pv-pod" pod.
-   *
-   * @param namespace name of the namespace
-   * @throws ApiException when delete fails
-   */
   private static void cleanupPVPod(String namespace) throws ApiException {
     Kubernetes.deletePod("pv-pod-" + namespace, namespace);
     Kubernetes.deletePvc("pv-pod-pvc-" + namespace, namespace);
     Kubernetes.deletePv("pv-pod-pv-" + namespace);
   }
-
-
 
   // there is currently a bug in the copy API which leaves i/o stream left open
   // and copy not to exit. As a temporary fix using a Thread to do the copy
@@ -358,6 +345,7 @@ public class LoggingUtil {
   // This won't be necessary once the bug is fixed in the api.
   // https://github.com/kubernetes-client/java/issues/861
   private static void copyDirectoryFromPod(V1Pod pvPod, String srcPath, Path destinationPath) throws ApiException {
+    Future<String> copyJob = null;
     try {
       Runnable copy = () -> {
         try {
@@ -368,20 +356,20 @@ public class LoggingUtil {
           logger.warning(ex.getMessage());
         }
       };
-
       ExecutorService executorService = Executors.newSingleThreadExecutor();
-      Future<String> copyJob = executorService.submit(copy, "Done copying");
-      copyJob.get(10, SECONDS);
-      if (!copyJob.isDone()) {
-        logger.info("Cancelling the copy job");
-        copyJob.cancel(true);
-      }
+      copyJob = executorService.submit(copy, "Done copying");
+      copyJob.get(1, MINUTES);
     } catch (ExecutionException ex) {
-      logger.warning("Exception in execution");
+      logger.warning("Exception in copy");
     } catch (TimeoutException ex) {
       logger.warning("Copy timed out");
     } catch (InterruptedException ex) {
       logger.warning("Copy interuppted");
+    } finally {
+      if (copyJob != null && !copyJob.isDone()) {
+        logger.info("Cancelling the copy job");
+        copyJob.cancel(true);
+      }
     }
   }
 
