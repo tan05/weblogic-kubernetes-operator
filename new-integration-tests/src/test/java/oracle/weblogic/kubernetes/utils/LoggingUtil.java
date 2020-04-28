@@ -349,7 +349,6 @@ public class LoggingUtil {
     try {
       Runnable copy = () -> {
         try {
-          int i = 0;
           logger.info("Copying from PV path {0} to {1}", srcPath, destinationPath.toString());
           Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
         } catch (IOException | ApiException ex) {
