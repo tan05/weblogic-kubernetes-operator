@@ -362,6 +362,7 @@ public class LoggingUtil {
     try {
       Runnable copy = () -> {
         try {
+          int i = 0;
           logger.info("Copying from PV path {0} to {1}", srcPath, destinationPath.toString());
           Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
         } catch (IOException | ApiException ex) {
@@ -370,12 +371,12 @@ public class LoggingUtil {
       };
 
       ExecutorService executorService = Executors.newSingleThreadExecutor();
-      Future<?> copyJob = executorService.submit(copy);
+      Future<String> copyJob = executorService.submit(copy, "Done copying");
       copyJob.get(1, MINUTES);
       if (!copyJob.isDone()) {
         copyJob.cancel(true);
       }
-    } catch (ExecutionException | TimeoutException | InterruptedException ex) {
+    } catch (ExecutionException | TimeoutException | InterruptedException | NullPointerException ex) {
       logger.info("Timed out copying");
       logger.warning(ex.getMessage());
     }
