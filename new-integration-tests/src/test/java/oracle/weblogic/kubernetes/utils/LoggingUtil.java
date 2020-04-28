@@ -40,7 +40,6 @@ import oracle.weblogic.kubernetes.TestConstants;
 import oracle.weblogic.kubernetes.actions.TestActions;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import org.awaitility.core.ConditionFactory;
-import org.awaitility.core.ConditionTimeoutException;
 
 import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -372,104 +371,17 @@ public class LoggingUtil {
 
       ExecutorService executorService = Executors.newSingleThreadExecutor();
       Future<String> copyJob = executorService.submit(copy, "Done copying");
-      copyJob.get(1, MINUTES);
+      copyJob.get(10, SECONDS);
       if (!copyJob.isDone()) {
         logger.info("Cancelling the copy job");
         copyJob.cancel(true);
       }
     } catch (ExecutionException ex) {
-      logger.warning(ex.getMessage());
+      logger.warning("Exception in execution");
     } catch (TimeoutException ex) {
-      logger.warning(ex.getMessage());
+      logger.warning("Copy timed out");
     } catch (InterruptedException ex) {
-      logger.warning(ex.getMessage());
-    } catch (NullPointerException ex) {
-      logger.warning(ex.getMessage());
-    } catch (Exception ex) {
-      logger.warning(ex.getMessage());
-    }
-  }
-
-
-  // there is currently a bug in the copy API which leaves i/o stream left open
-  // and copy not to exit. As a temporary fix using a Thread to do the copy
-  // and discard it after a minute.
-  // This won't be necessary once the bug is fixed in the api.
-  // https://github.com/kubernetes-client/java/issues/861
-  private static void copy1(String namespace, String hostPath, Path destinationPath) throws ApiException {
-    V1Pod pvPod = null;
-    CopyThread copypv = null;
-    try {
-      // create a temporary pod to get access to the interested persistent volume
-      pvPod = setupPVPod(namespace, hostPath);
-
-      // create a thread and copy the /shared directory from persistent volume
-      copypv = new CopyThread(pvPod, hostPath, destinationPath);
-      copypv.start();
-      // wait until the thread dies or 1 minute elapsed
-      try {
-        int elapsedtime = 0;
-        while (elapsedtime < 60) {
-          if (!copypv.isAlive()) {
-            break;
-          } else {
-            logger.info("Waiting for the copy from pv to be complete, "
-                + "elapsed time({0} seconds), remaining time({1} seconds)", elapsedtime, 60 - elapsedtime);
-          }
-          Thread.sleep(15 * 1000);
-          elapsedtime += 15;
-        }
-      } catch (InterruptedException iex) {
-        logger.warning(iex.getMessage());
-      }
-    } catch (ApiException apex) {
-      logger.severe(apex.getResponseBody());
-    } catch (ConditionTimeoutException toex) {
-      logger.severe(toex.getMessage());
-    } finally {
-      // interrupt the copy thead
-      if (copypv != null && copypv.isAlive()) {
-        logger.warning("Terminating the copy thread");
-        copypv.interrupt();
-      }
-      // remove the temporary pod
-      if (pvPod != null) {
-        cleanupPVPod(namespace);
-      }
-    }
-  }
-
-  /**
-   * A workaround utility class to copy the contents of persistent volume in a thread.
-   */
-  private static class CopyThread extends Thread {
-
-    V1Pod pvPod;
-    String srcPath;
-    Path destinationPath;
-
-    /**
-     * Constructor.
-     * @param pod V1Pod object which has access to the PV mount
-     * @param destinationPath Path location to copy the /shared contents
-     */
-    public CopyThread(V1Pod pod, String srcPath, Path destinationPath) {
-      this.pvPod = pod;
-      this.srcPath = srcPath;
-      this.destinationPath = destinationPath;
-    }
-
-    @Override
-    public void run() {
-      try {
-        logger.info("Copying from PV {0} to {1}", srcPath, destinationPath);
-        Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
-        logger.info("Done copying.");
-      } catch (ApiException ex) {
-        logger.severe(ex.getResponseBody());
-      } catch (IOException ex) {
-        logger.severe(ex.getMessage());
-      }
+      logger.warning("Copy interuppted");
     }
   }
 
