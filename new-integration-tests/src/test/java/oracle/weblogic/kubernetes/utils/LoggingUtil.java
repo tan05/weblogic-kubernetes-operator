@@ -26,6 +26,7 @@ import io.kubernetes.client.openapi.models.V1VolumeMount;
 import oracle.weblogic.kubernetes.TestConstants;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import org.awaitility.core.ConditionFactory;
+import org.awaitility.core.ConditionTimeoutException;
 
 import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -250,6 +251,8 @@ public class LoggingUtil {
       }
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
+    } catch (ConditionTimeoutException toex) {
+      logger.severe(toex.getMessage());
     } finally {
       // interrupt the copy thead
       if (copypv != null && copypv.isAlive()) {
@@ -283,11 +286,11 @@ public class LoggingUtil {
                     .imagePullPolicy("IfNotPresent")
                     .volumeMounts(Arrays.asList(
                         new V1VolumeMount()
-                            .name("weblogic-domain-storage-volume-" + namespace)
+                            .name("domain1-pv")
                             .mountPath("/shared")))))
             .volumes(Arrays.asList(
                 new V1Volume()
-                    .name("weblogic-domain-storage-volume-" + namespace)
+                    .name("domain1-pv")
                     .persistentVolumeClaim(
                         new V1PersistentVolumeClaimVolumeSource()
                             .claimName(claimName))))) // this gives access to the PV of WebLogic domain pods
