@@ -302,7 +302,7 @@ public class LoggingUtil {
             .addAccessModesItem("ReadWriteMany")
             .storageClassName(namespace + "-weblogic-domain-storage-class")
             .putCapacityItem("storage", Quantity.fromString("10Gi"))
-            .persistentVolumeReclaimPolicy("Retain")
+            .persistentVolumeReclaimPolicy("Recycle")
             .hostPath(new V1HostPathVolumeSource().path(hostPath)))
         .metadata(new V1ObjectMetaBuilder()
             .withName(pvName)
@@ -404,7 +404,7 @@ public class LoggingUtil {
     @Override
     public void run() {
       try {
-        logger.info("Copying from PV {0} to {}", srcPath, destinationPath);
+        logger.info("Copying from PV {0} to {1}", srcPath, destinationPath);
         Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
         logger.info("Done copying.");
       } catch (ApiException ex) {
