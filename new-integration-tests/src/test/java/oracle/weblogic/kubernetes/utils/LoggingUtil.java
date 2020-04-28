@@ -239,10 +239,10 @@ public class LoggingUtil {
     CopyThread copypv = null;
     try {
       // create a temporary pod to get access to the interested persistent volume
-      pvPod = createPVPod(namespace, hostPath);
+      pvPod = setupPVPod(namespace, hostPath);
 
       // create a thread and copy the /shared directory from persistent volume
-      copypv = new CopyThread(pvPod, destinationPath);
+      copypv = new CopyThread(pvPod, hostPath, destinationPath);
       copypv.start();
       // wait until the thread dies or 1 minute elapsed
       try {
@@ -272,7 +272,7 @@ public class LoggingUtil {
       }
       // remove the temporary pod
       if (pvPod != null) {
-        deletePVPod(namespace);
+        cleanupPVPod(namespace);
       }
     }
   }
@@ -286,7 +286,7 @@ public class LoggingUtil {
    * @return V1Pod object
    * @throws ApiException when create pod fails
    */
-  private static V1Pod createPVPod(String namespace, String hostPath) throws ApiException {
+  private static V1Pod setupPVPod(String namespace, String hostPath) throws ApiException {
 
     // wait for the pod to come up
     ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
@@ -375,8 +375,10 @@ public class LoggingUtil {
    * @param namespace name of the namespace
    * @throws ApiException when delete fails
    */
-  private static void deletePVPod(String namespace) throws ApiException {
+  private static void cleanupPVPod(String namespace) throws ApiException {
     Kubernetes.deletePod("pv-pod-" + namespace, namespace);
+    Kubernetes.deletePvc("pv-pod-pvc-" + namespace, namespace);
+    Kubernetes.deletePv("pv-pod-pv-" + namespace);
   }
 
   /**
@@ -385,6 +387,7 @@ public class LoggingUtil {
   private static class CopyThread extends Thread {
 
     V1Pod pvPod;
+    String srcPath;
     Path destinationPath;
 
     /**
@@ -392,15 +395,16 @@ public class LoggingUtil {
      * @param pod V1Pod object which has access to the PV mount
      * @param destinationPath Path location to copy the /shared contents
      */
-    public CopyThread(V1Pod pod, Path destinationPath) {
+    public CopyThread(V1Pod pod, String srcPath, Path destinationPath) {
       this.pvPod = pod;
+      this.srcPath = srcPath;
       this.destinationPath = destinationPath;
     }
 
     @Override
     public void run() {
       try {
-        logger.info("Copying from PV /shared to {0}", destinationPath);
+        logger.info("Copying from PV {0} to {}", srcPath, destinationPath);
         Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
         logger.info("Done copying.");
       } catch (ApiException ex) {
