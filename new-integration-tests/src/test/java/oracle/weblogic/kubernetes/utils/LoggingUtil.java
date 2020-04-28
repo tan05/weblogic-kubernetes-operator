@@ -32,6 +32,7 @@ import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
 import oracle.weblogic.kubernetes.TestConstants;
+import oracle.weblogic.kubernetes.actions.TestActions;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import org.awaitility.core.ConditionFactory;
 import org.awaitility.core.ConditionTimeoutException;
@@ -295,17 +296,6 @@ public class LoggingUtil {
     // create a pvc and pv to get access to the host path of the target pv
     final String pvcName = "pv-pod-pvc-" + namespace;
     final String pvName = "pv-pod-pv-" + namespace;
-    V1PersistentVolumeClaim v1pvc = new V1PersistentVolumeClaim()
-        .spec(new V1PersistentVolumeClaimSpec()
-            .addAccessModesItem("ReadWriteMany")
-            .storageClassName(namespace + "-weblogic-domain-storage-class")
-            .resources(new V1ResourceRequirements()
-                .putRequestsItem("storage", Quantity.fromString("2Gi"))))
-        .metadata(new V1ObjectMetaBuilder()
-            .withName(pvcName)
-            .withNamespace(namespace)
-            .build());
-    logger.info(dump(v1pvc));
 
     V1PersistentVolume v1pv = new V1PersistentVolume()
         .spec(new V1PersistentVolumeSpec()
@@ -317,6 +307,22 @@ public class LoggingUtil {
         .metadata(new V1ObjectMetaBuilder()
             .withName(pvName)
             .build());
+    TestActions.createPersistentVolume(v1pv);
+    logger.info(dump(v1pv));
+
+    V1PersistentVolumeClaim v1pvc = new V1PersistentVolumeClaim()
+        .spec(new V1PersistentVolumeClaimSpec()
+            .volumeName(pvName)
+            .addAccessModesItem("ReadWriteMany")
+            .storageClassName(namespace + "-weblogic-domain-storage-class")
+            .resources(new V1ResourceRequirements()
+                .putRequestsItem("storage", Quantity.fromString("2Gi"))))
+        .metadata(new V1ObjectMetaBuilder()
+            .withName(pvcName)
+            .withNamespace(namespace)
+            .build());
+    TestActions.createPersistentVolumeClaim(v1pvc);
+    logger.info(dump(v1pvc));
 
     withStandardRetryPolicy
         .conditionEvaluationListener(
@@ -325,7 +331,6 @@ public class LoggingUtil {
                 condition.getElapsedTimeInMS(),
                 condition.getRemainingTimeInMS()))
         .until(isPersistentVolumeBound(pvName));
-
 
     V1Pod pvPod;
     V1Pod podBody = new V1Pod()
@@ -351,8 +356,6 @@ public class LoggingUtil {
     logger.info(dump(podBody));
     pvPod = Kubernetes.createPod(namespace, podBody);
     logger.info(dump(pvPod));
-
-
 
     withStandardRetryPolicy
         .conditionEvaluationListener(
