@@ -14,13 +14,21 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1HostPathVolumeSource;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1ObjectMetaBuilder;
+import io.kubernetes.client.openapi.models.V1PersistentVolume;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimSpec;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimVolumeSource;
 import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeSpec;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
+import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.kubernetes.client.openapi.models.V1Volume;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
 import oracle.weblogic.kubernetes.TestConstants;
@@ -31,6 +39,7 @@ import org.awaitility.core.ConditionTimeoutException;
 import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static oracle.weblogic.kubernetes.assertions.TestAssertions.isPersistentVolumeBound;
 import static oracle.weblogic.kubernetes.assertions.TestAssertions.podReady;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
 import static org.awaitility.Awaitility.with;
@@ -117,8 +126,9 @@ public class LoggingUtil {
         for (var pv : pvList.getItems()) {
           String claimName = pvc.getMetadata().getName();
           String pvName = pv.getMetadata().getName();
+          String hostPath = pv.getSpec().getHostPath().getPath();
           try {
-            copy(namespace, claimName,
+            copy(namespace, hostPath,
                 Files.createDirectories(
                     Paths.get(resultDir, claimName, pvName)));
           } catch (ApiException apex) {
@@ -223,12 +233,12 @@ public class LoggingUtil {
   // and discard it after a minute.
   // This won't be necessary once the bug is fixed in the api.
   // https://github.com/kubernetes-client/java/issues/861
-  private static void copy(String namespace, String claimName, Path destinationPath) throws ApiException {
+  private static void copy(String namespace, String hostPath, Path destinationPath) throws ApiException {
     V1Pod pvPod = null;
     CopyThread copypv = null;
     try {
       // create a temporary pod to get access to the interested persistent volume
-      pvPod = createPVPod(namespace, claimName);
+      pvPod = createPVPod(namespace, hostPath);
 
       // create a thread and copy the /shared directory from persistent volume
       copypv = new CopyThread(pvPod, destinationPath);
@@ -275,7 +285,48 @@ public class LoggingUtil {
    * @return V1Pod object
    * @throws ApiException when create pod fails
    */
-  private static V1Pod createPVPod(String namespace, String claimName) throws ApiException {
+  private static V1Pod createPVPod(String namespace, String hostPath) throws ApiException {
+
+    // wait for the pod to come up
+    ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
+        .and().with().pollInterval(5, SECONDS)
+        .atMost(1, MINUTES).await();
+
+    // create a pvc and pv to get access to the host path of the target pv
+    final String pvcName = "pv-pod-pvc-" + namespace;
+    final String pvName = "pv-pod-pv-" + namespace;
+    V1PersistentVolumeClaim v1pvc = new V1PersistentVolumeClaim()
+        .spec(new V1PersistentVolumeClaimSpec()
+            .addAccessModesItem("ReadWriteMany")
+            .storageClassName(namespace + "-weblogic-domain-storage-class")
+            .resources(new V1ResourceRequirements()
+                .putRequestsItem("storage", Quantity.fromString("2Gi"))))
+        .metadata(new V1ObjectMetaBuilder()
+            .withName(pvcName)
+            .withNamespace(namespace)
+            .build());
+    logger.info(dump(v1pvc));
+
+    V1PersistentVolume v1pv = new V1PersistentVolume()
+        .spec(new V1PersistentVolumeSpec()
+            .addAccessModesItem("ReadWriteMany")
+            .storageClassName(namespace + "-weblogic-domain-storage-class")
+            .putCapacityItem("storage", Quantity.fromString("10Gi"))
+            .persistentVolumeReclaimPolicy("Retain")
+            .hostPath(new V1HostPathVolumeSource().path(hostPath)))
+        .metadata(new V1ObjectMetaBuilder()
+            .withName(pvName)
+            .build());
+
+    withStandardRetryPolicy
+        .conditionEvaluationListener(
+            condition -> logger.info("Waiting for pv to be bound, "
+                + "(elapsed time {0} , remaining time {1}",
+                condition.getElapsedTimeInMS(),
+                condition.getRemainingTimeInMS()))
+        .until(isPersistentVolumeBound(pvName));
+
+
     V1Pod pvPod;
     V1Pod podBody = new V1Pod()
         .spec(new V1PodSpec()
@@ -286,25 +337,22 @@ public class LoggingUtil {
                     .imagePullPolicy("IfNotPresent")
                     .volumeMounts(Arrays.asList(
                         new V1VolumeMount()
-                            .name("domain1-pv")
+                            .name(pvName)
                             .mountPath("/shared")))))
             .volumes(Arrays.asList(
                 new V1Volume()
-                    .name("domain1-pv")
+                    .name("pv-pod-pv-" + namespace)
                     .persistentVolumeClaim(
                         new V1PersistentVolumeClaimVolumeSource()
-                            .claimName(claimName))))) // this gives access to the PV of WebLogic domain pods
-        .metadata(new V1ObjectMeta().name("pv-pod-" + namespace))
+                            .claimName(pvcName)))))
+        .metadata(new V1ObjectMeta().name(pvName))
         .apiVersion("v1")
         .kind("Pod");
     logger.info(dump(podBody));
     pvPod = Kubernetes.createPod(namespace, podBody);
     logger.info(dump(pvPod));
 
-    // wait for the pod to come up
-    ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
-        .and().with().pollInterval(5, SECONDS)
-        .atMost(1, MINUTES).await();
+
 
     withStandardRetryPolicy
         .conditionEvaluationListener(

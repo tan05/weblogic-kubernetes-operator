@@ -187,4 +187,16 @@ public class TestAssertions {
   public static boolean isHelmReleaseDeployed(String releaseName, String namespace) {
     return Helm.isReleaseDeployed(releaseName, namespace);
   }
+
+  /**
+   * Check if a persistent volume is in bound state.
+   *
+   * @param name name of the persistent volume
+   * @return true if bound otherwise false
+   */
+  public static Callable<Boolean> isPersistentVolumeBound(String name) {
+    return () -> {
+      return Kubernetes.isPersistentVolumeBound(name);
+    };
+  }
 }
