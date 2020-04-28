@@ -332,7 +332,7 @@ public class LoggingUtil {
                 condition.getRemainingTimeInMS()))
         .until(isPersistentVolumeBound(pvName));
 
-    V1Pod pvPod;
+    final String podName = "pv-pod-" + namespace;
     V1Pod podBody = new V1Pod()
         .spec(new V1PodSpec()
             .containers(Arrays.asList(
@@ -346,15 +346,15 @@ public class LoggingUtil {
                             .mountPath("/shared")))))
             .volumes(Arrays.asList(
                 new V1Volume()
-                    .name("pv-pod-pv-" + namespace)
+                    .name(pvName)
                     .persistentVolumeClaim(
                         new V1PersistentVolumeClaimVolumeSource()
                             .claimName(pvcName)))))
-        .metadata(new V1ObjectMeta().name(pvName))
+        .metadata(new V1ObjectMeta().name(podName))
         .apiVersion("v1")
         .kind("Pod");
     logger.info(dump(podBody));
-    pvPod = Kubernetes.createPod(namespace, podBody);
+    V1Pod pvPod = Kubernetes.createPod(namespace, podBody);
     logger.info(dump(pvPod));
 
     withStandardRetryPolicy
