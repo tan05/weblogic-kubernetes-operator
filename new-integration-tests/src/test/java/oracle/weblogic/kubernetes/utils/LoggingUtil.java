@@ -13,6 +13,11 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiException;
@@ -129,7 +134,7 @@ public class LoggingUtil {
           String pvName = pv.getMetadata().getName();
           String hostPath = pv.getSpec().getHostPath().getPath();
           try {
-            copy(namespace, hostPath,
+            copyFromPV(namespace, hostPath,
                 Files.createDirectories(
                     Paths.get(resultDir, claimName, pvName)));
           } catch (ApiException apex) {
@@ -228,48 +233,13 @@ public class LoggingUtil {
     }
   }
 
-
-  // there is currently a bug in the copy API which leaves i/o stream left open
-  // and copy not to exit. As a temporary fix using a Thread to do the copy
-  // and discard it after a minute.
-  // This won't be necessary once the bug is fixed in the api.
-  // https://github.com/kubernetes-client/java/issues/861
-  private static void copy(String namespace, String hostPath, Path destinationPath) throws ApiException {
+  private static void copyFromPV(String namespace, String hostPath, Path destinationPath) throws ApiException {
     V1Pod pvPod = null;
-    CopyThread copypv = null;
     try {
       // create a temporary pod to get access to the interested persistent volume
       pvPod = setupPVPod(namespace, hostPath);
-
-      // create a thread and copy the /shared directory from persistent volume
-      copypv = new CopyThread(pvPod, hostPath, destinationPath);
-      copypv.start();
-      // wait until the thread dies or 1 minute elapsed
-      try {
-        int elapsedtime = 0;
-        while (elapsedtime < 60) {
-          if (!copypv.isAlive()) {
-            break;
-          } else {
-            logger.info("Waiting for the copy from pv to be complete, "
-                + "elapsed time({0} seconds), remaining time({1} seconds)", elapsedtime, 60 - elapsedtime);
-          }
-          Thread.sleep(15 * 1000);
-          elapsedtime += 15;
-        }
-      } catch (InterruptedException iex) {
-        logger.warning(iex.getMessage());
-      }
-    } catch (ApiException apex) {
-      logger.severe(apex.getResponseBody());
-    } catch (ConditionTimeoutException toex) {
-      logger.severe(toex.getMessage());
+      copyDirectoryFromPod(pvPod, hostPath, destinationPath);
     } finally {
-      // interrupt the copy thead
-      if (copypv != null && copypv.isAlive()) {
-        logger.warning("Terminating the copy thread");
-        copypv.interrupt();
-      }
       // remove the temporary pod
       if (pvPod != null) {
         cleanupPVPod(namespace);
@@ -379,6 +349,85 @@ public class LoggingUtil {
     Kubernetes.deletePod("pv-pod-" + namespace, namespace);
     Kubernetes.deletePvc("pv-pod-pvc-" + namespace, namespace);
     Kubernetes.deletePv("pv-pod-pv-" + namespace);
+  }
+
+
+
+  // there is currently a bug in the copy API which leaves i/o stream left open
+  // and copy not to exit. As a temporary fix using a Thread to do the copy
+  // and discard it after a minute.
+  // This won't be necessary once the bug is fixed in the api.
+  // https://github.com/kubernetes-client/java/issues/861
+  private static void copyDirectoryFromPod(V1Pod pvPod, String srcPath, Path destinationPath) throws ApiException {
+    try {
+      Runnable copy = () -> {
+        try {
+          logger.info("Copying from PV path {0} to {1}", srcPath, destinationPath.toString());
+          Kubernetes.copyDirectoryFromPod(pvPod, "/shared", destinationPath);
+        } catch (IOException | ApiException ex) {
+          logger.warning(ex.getMessage());
+        }
+      };
+
+      ExecutorService executorService = Executors.newSingleThreadExecutor();
+      Future<?> copyJob = executorService.submit(copy);
+      copyJob.get(1, MINUTES);
+      if (!copyJob.isDone()) {
+        copyJob.cancel(true);
+      }
+    } catch (ExecutionException | TimeoutException | InterruptedException ex) {
+      logger.info("Timed out copying");
+      logger.warning(ex.getMessage());
+    }
+  }
+
+
+  // there is currently a bug in the copy API which leaves i/o stream left open
+  // and copy not to exit. As a temporary fix using a Thread to do the copy
+  // and discard it after a minute.
+  // This won't be necessary once the bug is fixed in the api.
+  // https://github.com/kubernetes-client/java/issues/861
+  private static void copy1(String namespace, String hostPath, Path destinationPath) throws ApiException {
+    V1Pod pvPod = null;
+    CopyThread copypv = null;
+    try {
+      // create a temporary pod to get access to the interested persistent volume
+      pvPod = setupPVPod(namespace, hostPath);
+
+      // create a thread and copy the /shared directory from persistent volume
+      copypv = new CopyThread(pvPod, hostPath, destinationPath);
+      copypv.start();
+      // wait until the thread dies or 1 minute elapsed
+      try {
+        int elapsedtime = 0;
+        while (elapsedtime < 60) {
+          if (!copypv.isAlive()) {
+            break;
+          } else {
+            logger.info("Waiting for the copy from pv to be complete, "
+                + "elapsed time({0} seconds), remaining time({1} seconds)", elapsedtime, 60 - elapsedtime);
+          }
+          Thread.sleep(15 * 1000);
+          elapsedtime += 15;
+        }
+      } catch (InterruptedException iex) {
+        logger.warning(iex.getMessage());
+      }
+    } catch (ApiException apex) {
+      logger.severe(apex.getResponseBody());
+    } catch (ConditionTimeoutException toex) {
+      logger.severe(toex.getMessage());
+    } finally {
+      // interrupt the copy thead
+      if (copypv != null && copypv.isAlive()) {
+        logger.warning("Terminating the copy thread");
+        copypv.interrupt();
+      }
+      // remove the temporary pod
+      if (pvPod != null) {
+        cleanupPVPod(namespace);
+      }
+    }
   }
 
   /**
