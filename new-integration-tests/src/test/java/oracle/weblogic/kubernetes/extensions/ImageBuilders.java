@@ -62,7 +62,7 @@ public class ImageBuilders implements BeforeAllCallback, ExtensionContext.Store.
         } else {
           assertTrue(Operator.buildImage(operatorImage));
         }
-        
+
       } finally {
         // Initialization is done. Release all waiting other threads. The latch is now disabled so
         // other threads

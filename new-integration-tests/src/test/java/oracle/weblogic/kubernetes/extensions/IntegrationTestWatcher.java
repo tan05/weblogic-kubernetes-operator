@@ -108,7 +108,7 @@ public class IntegrationTestWatcher implements
   @Override
   public void beforeAll(ExtensionContext context) {
     className = context.getRequiredTestClass().getName();
-
+    
     printHeader(String.format("Starting Test Suite %s", className), "+");
     printHeader(String.format("Starting beforeAll for %s", className), "-");
   }
