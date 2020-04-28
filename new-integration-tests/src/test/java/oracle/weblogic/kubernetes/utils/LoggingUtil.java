@@ -374,10 +374,18 @@ public class LoggingUtil {
       Future<String> copyJob = executorService.submit(copy, "Done copying");
       copyJob.get(1, MINUTES);
       if (!copyJob.isDone()) {
+        logger.info("Cancelling the copy job");
         copyJob.cancel(true);
       }
-    } catch (ExecutionException | TimeoutException | InterruptedException | NullPointerException ex) {
-      logger.info("Timed out copying");
+    } catch (ExecutionException ex) {
+      logger.warning(ex.getMessage());
+    } catch (TimeoutException ex) {
+      logger.warning(ex.getMessage());
+    } catch (InterruptedException ex) {
+      logger.warning(ex.getMessage());
+    } catch (NullPointerException ex) {
+      logger.warning(ex.getMessage());
+    } catch (Exception ex) {
       logger.warning(ex.getMessage());
     }
   }
