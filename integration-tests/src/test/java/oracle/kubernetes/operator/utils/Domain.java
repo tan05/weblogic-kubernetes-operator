@@ -1625,20 +1625,24 @@ public class Domain {
     LoggerHelper.getLocal().log(Level.INFO, "Command returned " + outputStr);
   
     // for remote k8s cluster and domain in image case, push the domain image to OCIR
-    if (domainMap.containsKey("domainHomeImageBase") && BaseTest.SHARED_CLUSTER) {
+    if (domainMap.containsKey("domainHomeImageBase")) {
       String image = (String)domainMap.get("image");
-      TestUtils.loginAndPushImageToOcir(image);
+      if (BaseTest.SHARED_CLUSTER) {
+        TestUtils.loginAndPushImageToOcir(image);
 
-      // create ocir registry secret in the same ns as domain which is used while pulling the domain
-      // image
-      
-      TestUtils.createDockerRegistrySecret(
-          "ocir-domain",
-          System.getenv("REPO_REGISTRY"),
-          System.getenv("REPO_USERNAME"),
-          System.getenv("REPO_PASSWORD"),
-          System.getenv("REPO_EMAIL"),
-          domainNS);
+        // create ocir registry secret in the same ns as domain which is used while pulling the domain
+        // image
+
+        TestUtils.createDockerRegistrySecret(
+            "ocir-domain",
+            System.getenv("REPO_REGISTRY"),
+            System.getenv("REPO_USERNAME"),
+            System.getenv("REPO_PASSWORD"),
+            System.getenv("REPO_EMAIL"),
+            domainNS);
+      } else if (BaseTest.KIND) {
+        TestUtils.loadImageToKind(image);
+      }
     }
 
     //create configmap for MII

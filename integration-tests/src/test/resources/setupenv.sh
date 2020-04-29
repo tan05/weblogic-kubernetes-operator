@@ -6,6 +6,13 @@ function cleanup {
 	${PROJECT_ROOT}/src/integration-tests/bash/cleanup.sh
 }
 
+function docker_pull {
+  docker pull "$1"
+  if [ "$KIND" = "true" ]; then
+    kind load docker-image "$1"
+  fi
+}
+
 function create_image_pull_secret_wl {
 
   set +x 
@@ -32,7 +39,7 @@ function create_image_pull_secret_wl {
 	  
 	  # below docker pull is needed to for domain home in image tests the base image should be in local repo
 	  docker login -u $OCR_USERNAME -p $OCR_PASSWORD ${OCR_SERVER}
-	  docker pull $IMAGE_NAME_WEBLOGIC:$IMAGE_TAG_WEBLOGIC
+	  docker_pull $IMAGE_NAME_WEBLOGIC:$IMAGE_TAG_WEBLOGIC
 	  
   fi
   set -x
@@ -57,10 +64,10 @@ function pull_tag_images_jrf {
   create_image_pull_secret_wl
 
   # pull fmw infra images
-  docker pull $IMAGE_NAME_FMWINFRA:$IMAGE_TAG_FMWINFRA
+  docker_pull $IMAGE_NAME_FMWINFRA:$IMAGE_TAG_FMWINFRA
 
   # pull oracle db image
-  docker pull $IMAGE_NAME_ORACLEDB:$IMAGE_TAG_ORACLEDB
+  docker_pull $IMAGE_NAME_ORACLEDB:$IMAGE_TAG_ORACLEDB
 
   set -x
 }
@@ -184,5 +191,9 @@ else
     docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy --build-arg no_proxy=$no_proxy -t "${IMAGE_NAME_OPERATOR}:${IMAGE_TAG_OPERATOR}"  --build-arg VERSION=$JAR_VERSION --no-cache=true .
   fi  
   docker tag "${IMAGE_NAME_OPERATOR}:${IMAGE_TAG_OPERATOR}" weblogic-kubernetes-operator:latest
- 
+
+  if [ "$KIND" = "true" ]; then
+    kind load docker-image "${IMAGE_NAME_OPERATOR}:${IMAGE_TAG_OPERATOR}"
+    kind load docker-image weblogic-kubernetes-operator:latest
+  fi
 fi

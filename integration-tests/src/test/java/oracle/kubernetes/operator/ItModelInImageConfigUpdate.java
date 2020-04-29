@@ -204,6 +204,8 @@ public class ItModelInImageConfigUpdate extends MiiBaseTest {
       // push the image to docker repository
       if (BaseTest.SHARED_CLUSTER) {
         TestUtils.loginAndPushImageToOcir(imageName);
+      } else if (BaseTest.KIND) {
+        TestUtils.loadImageToKind(imageName);
       }
 
       // update domain yaml with new image tag and
@@ -389,6 +391,8 @@ public class ItModelInImageConfigUpdate extends MiiBaseTest {
       // push the image to docker repository
       if (BaseTest.SHARED_CLUSTER) {
         TestUtils.loginAndPushImageToOcir(imageName);
+      } else if (BaseTest.KIND) {
+        TestUtils.loadImageToKind(imageName);
       }
 
       // update domain yaml with new image tag and

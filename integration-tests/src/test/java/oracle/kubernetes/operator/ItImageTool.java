@@ -83,6 +83,8 @@ public class ItImageTool extends BaseTest {
 
       if (BaseTest.SHARED_CLUSTER) {
         TestUtils.loginAndPushImageToOcir(weblogicImageTagWIT);
+      } else if (BaseTest.KIND) {
+        TestUtils.loadImageToKind(weblogicImageTagWIT);
       }
 
       // initialize test properties and create the directories

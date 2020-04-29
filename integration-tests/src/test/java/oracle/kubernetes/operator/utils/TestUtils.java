@@ -2012,6 +2012,26 @@ public class TestUtils {
   }
 
   /**
+   * Load image to kind cluster nodes.
+   * @param image image
+   * @return Execution result
+   * @throws Exception on failure
+   */
+  public static ExecResult loadImageToKind(String image) throws Exception {
+    String kindLoadCmd =
+        "kind load docker-image " + image;
+    ExecResult result = TestUtils.execOrAbortProcess(kindLoadCmd);
+    LoggerHelper.getLocal().log(Level.INFO,
+        "cmd "
+            + kindLoadCmd
+            + "\n result "
+            + result.stdout()
+            + "\n err "
+            + result.stderr());
+    return result;
+  }
+
+  /**
    * execute kubectl patch.
    * @param domainUid domain UID
    * @param domainNS namespace

@@ -46,6 +46,7 @@ public class BaseTest {
   public static boolean FULLTEST;
   public static boolean JENKINS;
   public static boolean SHARED_CLUSTER;
+  public static boolean KIND;
   public static boolean OPENSHIFT;
   public static String WDT_VERSION;
   //currently certified chart versions of Prometheus and Grafana
@@ -130,6 +131,9 @@ public class BaseTest {
     }
     if (System.getenv("SHARED_CLUSTER") != null) {
       SHARED_CLUSTER = new Boolean(System.getenv("SHARED_CLUSTER")).booleanValue();
+    }
+    if (System.getenv("KIND") != null) {
+      KIND = new Boolean(System.getenv("KIND")).booleanValue();
     }
     if (System.getenv("OPENSHIFT") != null) {
       OPENSHIFT = new Boolean(System.getenv("OPENSHIFT")).booleanValue();

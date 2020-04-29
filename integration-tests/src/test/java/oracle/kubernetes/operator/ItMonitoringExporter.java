@@ -1080,6 +1080,8 @@ public class ItMonitoringExporter extends BaseTest {
       // image
 
       TestUtils.loginAndPushImageToOcir(image);
+    } else if (BaseTest.KIND) {
+      TestUtils.loadImageToKind(image);
     }
 
     replaceStringInFile(monitoringExporterEndToEndDir + "/demo-domains/domainInImage.yaml",
