@@ -278,8 +278,11 @@ public class BaseTest {
     // for manual/local run, create file handler, create PVROOT
     if (!SHARED_CLUSTER) {
       LoggerHelper.getLocal().log(Level.INFO, "Creating PVROOT " + pvRoot);
-      TestUtils.execOrAbortProcess("/usr/local/packages/aime/ias/run_as_root \"mkdir -m777 -p "
-          + pvRoot + "\"", true);
+      String cmd = "mkdir -m777 -p " + pvRoot;
+      if (!KIND) {
+        cmd = "/usr/local/packages/aime/ias/run_as_root \"" + cmd + "\"";
+      }
+      TestUtils.execOrAbortProcess(cmd, true);
     }
 
     // create resultRoot, PVRoot, etc

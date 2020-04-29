@@ -19,6 +19,8 @@ if [ ${SHARED_CLUSTER} = "true" ]; then
     fi
     sed -i "s/webhook-log:1.0/$REPO_REGISTRY\/weblogick8s\/webhook-log:$tag/g"  ${resourceExporterDir}/server.yaml
     sed -i "s/IfNotPresent/Always/g"  ${resourceExporterDir}/server.yaml
+elif [ "$KIND" = "true" ]; then
+    kind load docker-image webhook-log:1.0
 fi
 
 kubectl create ns webhook

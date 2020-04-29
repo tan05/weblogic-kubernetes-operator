@@ -1,11 +1,9 @@
 #!/bin/bash
 KINDTEST="/scratch/$USER/kindtest"
 export PV_ROOT="$KINDTEST/k8s-pvroot"
-mkdir -p "$PV_ROOT"
-chmod -R 777 "$PV_ROOT"
+mkdir -m777 -p "$PV_ROOT"
 export RESULT_ROOT="$KINDTEST/wl_k8s_test_results"
-mkdir -p "$RESULT_ROOT"
-chmod -R 777 "$RESULT_ROOT"
+mkdir -m777 -p "$RESULT_ROOT"
 
 echo 'Remove old cluster (if any)...'
 kind delete cluster
