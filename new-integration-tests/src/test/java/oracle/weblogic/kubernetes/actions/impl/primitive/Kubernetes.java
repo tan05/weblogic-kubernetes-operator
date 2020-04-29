@@ -4,12 +4,14 @@
 package oracle.weblogic.kubernetes.actions.impl.primitive;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import io.kubernetes.client.Copy;
 import io.kubernetes.client.custom.V1Patch;
 import io.kubernetes.client.extended.generic.GenericKubernetesApi;
 import io.kubernetes.client.extended.generic.KubernetesApiResponse;
@@ -357,6 +359,39 @@ public class Kubernetes implements LoggedTest {
       throw apex;
     }
     return v1PodList;
+  }
+
+  /**
+   * Create a pod.
+   *
+   * @param namespace name of the namespace
+   * @param podBody V1Pod object containing pod configuration data
+   * @return V1Pod object
+   * @throws ApiException when create pod fails
+   */
+  public static V1Pod createPod(String namespace, V1Pod podBody) throws ApiException {
+    V1Pod pod;
+    try {
+      pod = coreV1Api.createNamespacedPod(namespace, podBody, null, null, null);
+    } catch (ApiException apex) {
+      logger.severe(apex.getResponseBody());
+      throw apex;
+    }
+    return pod;
+  }
+
+  /**
+   * Copy a directory from Kubernetes pod to local destination path.
+   * @param pod V1Pod object
+   * @param srcPath source directory location
+   * @param destination destination directory path
+   * @throws IOException when copy fails
+   * @throws ApiException when pod interaction fails
+   */
+  public static void copyDirectoryFromPod(V1Pod pod, String srcPath, Path destination)
+      throws IOException, ApiException {
+    Copy copy = new Copy();
+    copy.copyDirectoryFromPod(pod, srcPath, destination);
   }
 
   // --------------------------- namespaces -----------------------------------
