@@ -389,6 +389,10 @@ public class CleanupUtil {
         logger.info("Existing namespaces");
         for (var namespace1: Kubernetes.listNamespaces()) {
           logger.info(namespace1);
+          if (!namespace1.equals(namespace) && namespace1.startsWith("ns-")) {
+            logger.info("Deleting namespace {0}", namespace1);
+            Kubernetes.deleteNamespace(namespace1);
+          }
         }
 
         logger.info("Existing cluster roles");
