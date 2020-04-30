@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -36,7 +37,6 @@ import org.awaitility.core.ConditionFactory;
 import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static oracle.weblogic.kubernetes.assertions.TestAssertions.isPersistentVolumeInState;
 import static oracle.weblogic.kubernetes.assertions.TestAssertions.podReady;
 import static oracle.weblogic.kubernetes.extensions.LoggedTest.logger;
 import static org.awaitility.Awaitility.with;
@@ -105,7 +105,7 @@ public class LoggingUtil {
       logger.warning(ex.getMessage());
     }
 
-    List<V1PersistentVolume> pvList = null;
+    List<V1PersistentVolume> pvList = new ArrayList<>();
     for (var pv : Kubernetes.listPersistentVolumes().getItems()) {
       for (var pvc : Kubernetes.listPersistentVolumeClaims(namespace).getItems()) {
         if (pv.getSpec().getStorageClassName()
@@ -113,14 +113,12 @@ public class LoggingUtil {
             && pv.getMetadata().getName()
                 .equals(pvc.getSpec().getVolumeName())) {
           pvList.add(pv);
-          String claimName = pvc.getMetadata().getName();
           String pvName = pv.getMetadata().getName();
           String pvcName = pvc.getMetadata().getName();
-          String hostPath = pv.getSpec().getHostPath().getPath();
           try {
             copyFromPV(namespace, pvcName, pvName,
                 Files.createDirectories(
-                    Paths.get(resultDir, claimName, pvName)));
+                    Paths.get(resultDir, pvcName, pvName)));
           } catch (ApiException ex) {
             logger.warning(ex.getResponseBody());
           } catch (IOException ex) {
@@ -129,12 +127,10 @@ public class LoggingUtil {
         }
       }
     }
-    if (pvList != null) {
-      try {
-        writeToFile(pvList, resultDir, ".list.persistent-volumes.log");
-      } catch (IOException ex) {
-        Logger.getLogger(LoggingUtil.class.getName()).log(Level.SEVERE, null, ex);
-      }
+    try {
+      writeToFile(pvList, resultDir, ".list.persistent-volumes.log");
+    } catch (IOException ex) {
+      Logger.getLogger(LoggingUtil.class.getName()).log(Level.SEVERE, null, ex);
     }
 
     // get secrets
@@ -221,7 +217,8 @@ public class LoggingUtil {
   /**
    * Copy files from persistent volume to local folder.
    * @param namespace name of the namespace, used for creating temporary pod in that namespace.
-   * @param hostPath the path to be mounted in persistent volume
+   * @param pvcName name of the persistent volume claim
+   * @param pvName name of the persistent volume from which the contents needs to be archived
    * @param destinationPath destination folder to copy the files to
    * @throws ApiException when pod interaction fails
    */
@@ -246,12 +243,11 @@ public class LoggingUtil {
   }
 
   /**
-   * Create a temporary pod with a new persistent volume claim and persistent volume.
-   * This method creates a temporary persistent volume claim and persistent volume
-   * specifically for this pod.
+   * Create a temporary pod to get access to the persistent volume.
    *
    * @param namespace name of the namespace in which to create the temporary pod
-   * @param hostPath path from interested persistent volume (see above hostPath object)
+   * @param pvcName name of the persistent volume claim
+   * @param pvName name of the persistent volume from which the contents needs to be archived
    * @return V1Pod temporary pod object
    * @throws ApiException when create pod fails
    */
@@ -261,14 +257,6 @@ public class LoggingUtil {
     ConditionFactory withStandardRetryPolicy = with().pollDelay(2, SECONDS)
         .and().with().pollInterval(5, SECONDS)
         .atMost(1, MINUTES).await();
-
-    withStandardRetryPolicy
-        .conditionEvaluationListener(
-            condition -> logger.info("Waiting for pv to be bound, "
-                + "(elapsed time {0} , remaining time {1}",
-                condition.getElapsedTimeInMS(),
-                condition.getRemainingTimeInMS()))
-        .until(isPersistentVolumeInState(pvName, "Bound"));
 
     final String podName = "pv-pod-" + namespace;
     V1Pod podBody = new V1Pod()
@@ -327,7 +315,6 @@ public class LoggingUtil {
   /**
    * Copy the mounted persistent volume directory to local file system.
    * @param pvPod V1Pod object to copy from
-   * @param hostPath location of the mount path inside the path
    * @param destinationPath location for the destination path
    * @throws ApiException when copy fails
    */

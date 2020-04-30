@@ -40,6 +40,7 @@ import static org.awaitility.Awaitility.with;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @DisplayName("Simple validation of basic domain functions")
 // Every test class needs to tagged with this annotation for log collection, diagnostic messages logging
@@ -163,6 +164,7 @@ class ItSimpleDomainValidation implements LoggedTest {
         .await().atMost(5, MINUTES)
         // operatorIsRunning() is one of our custom, reusable assertions
         .until(domainExists(domainUid, "v7", namespace));
+    fail("DONE");
   }
 
   /**
