@@ -385,8 +385,30 @@ public class CleanupUtil {
       boolean notFound = true;
       // get namespaces
       try {
-        List<String> namespaceList = Kubernetes.listNamespaces();
-        if (namespaceList.contains(namespace)) {
+
+        logger.info("Existing namespaces");
+        for (var namespace1: Kubernetes.listNamespaces()) {
+          logger.info(namespace1);
+        }
+
+        logger.info("Existing cluster roles");
+        for (var role : Kubernetes.listClusterRoles(null).getItems()) {
+          logger.info(role.getMetadata().getName());
+        }
+
+        logger.info("Existing cluster rolebindings");
+        for (var rolebinding : Kubernetes.listClusterRoleBindings(null).getItems()) {
+          logger.info(rolebinding.getMetadata().getName());
+        }
+
+        logger.info("Existing persistent volumes");
+        for (var rolebinding : Kubernetes.listPersistentVolumes().getItems()) {
+          logger.info(rolebinding.getMetadata().getName());
+        }
+
+
+
+        if (Kubernetes.listNamespaces().contains(namespace)) {
           logger.info("Namespace still exists!!!");
           logger.info(namespace);
           notFound = false;
