@@ -17,6 +17,8 @@ echo 'Create cluster...'
 cp kind-config.yaml.template "$RESULT_ROOT/kind-config.yaml"
 sed -i -e "s|HOSTPATH|${PV_ROOT}|g" "$RESULT_ROOT/kind-config.yaml"
 kind create cluster --config="$RESULT_ROOT/kind-config.yaml"
+kubectl cluster-info --context kind-kind
+kubectl get node -o wide
 
 echo 'Checking for required ENVVARs'
 [[ -z "$DOCKER_USERNAME" ]] && { echo "Error: DOCKER_USERNAME must be set"; exit 1; }
