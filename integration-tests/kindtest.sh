@@ -31,7 +31,8 @@ echo 'Checking for required ENVVARs'
 
 echo 'Set up test running ENVVARs...'
 export KIND="true"
-export K8S_NODEPORT_HOST=`docker inspect kind-worker | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`
+#export K8S_NODEPORT_HOST=`docker inspect kind-worker | jq '.[].NetworkSettings.IPAddress' | sed 's/"//g'`
+export K8s_NODEPORT_HOME=`kubectl get node kind-worker -o jsonpath='{.status.addresses[?(@.type == "InternalIP")].address}'`
 
 echo 'Clean up result root...'
 rm -rf "${RESULT_ROOT:?}/*"
