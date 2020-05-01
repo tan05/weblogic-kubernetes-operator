@@ -1,13 +1,12 @@
 #!/bin/bash
 if [[ -z "$WORKSPACE" ]]; then
   KINDTEST="/scratch/$USER/kindtest"
-  mkdir -m777 -p "$KINDTEST"
-  export RESULT_ROOT="$KINDTEST/wl_k8s_test_results"
-  export PV_ROOT="$KINDTEST/k8s-pvroot"
 else
-  export RESULT_ROOT="${WORKSPACE}/logdir/${BUILD_TAG}/wl_k8s_test_results"
-  export PV_ROOT="${WORKSPACE}/logdir/${BUILD_TAG}k8s-pvroot"
+  KINDTEST="${WORKSPACE}/logdir/${BUILD_TAG}"
 fi
+mkdir -m777 -p "$KINDTEST"
+export RESULT_ROOT="$KINDTEST/wl_k8s_test_results"
+export PV_ROOT="$KINDTEST/k8s-pvroot"
 mkdir -m777 "$RESULT_ROOT"
 mkdir -m777 "$PV_ROOT"
 
