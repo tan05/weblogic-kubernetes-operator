@@ -5,19 +5,11 @@ package oracle.weblogic.kubernetes;
 
 import java.util.List;
 
-import io.kubernetes.client.custom.Quantity;
-import io.kubernetes.client.openapi.models.V1HostPathVolumeSource;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1ObjectMetaBuilder;
-import io.kubernetes.client.openapi.models.V1PersistentVolume;
-import io.kubernetes.client.openapi.models.V1PersistentVolumeClaim;
-import io.kubernetes.client.openapi.models.V1PersistentVolumeClaimSpec;
-import io.kubernetes.client.openapi.models.V1PersistentVolumeSpec;
-import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.kubernetes.client.openapi.models.V1ServiceAccount;
 import oracle.weblogic.domain.Domain;
 import oracle.weblogic.domain.DomainSpec;
-import oracle.weblogic.kubernetes.actions.TestActions;
 import oracle.weblogic.kubernetes.actions.impl.primitive.Kubernetes;
 import oracle.weblogic.kubernetes.annotations.IntegrationTest;
 import oracle.weblogic.kubernetes.annotations.Namespaces;
@@ -67,53 +59,6 @@ class ItSimpleDomainValidation implements LoggedTest {
         () -> Kubernetes.createServiceAccount(new V1ServiceAccount()
             .metadata(new V1ObjectMeta().namespace(namespace).name(serviceAccountName))));
     logger.info("Created service account: {0}", serviceAccount.getMetadata().getName());
-
-    // create persistent volume and persistent volume claim
-    pvcName = domainUid + "-pvc"; // name of the persistent volume claim
-    pvName = domainUid + "-pv"; // name of the persistent volume
-
-    V1PersistentVolumeClaim v1pvc = new V1PersistentVolumeClaim()
-        .spec(new V1PersistentVolumeClaimSpec()
-            .addAccessModesItem("ReadWriteMany")
-            .storageClassName(domainUid + "-weblogic-domain-storage-class")
-            .volumeName(pvName)
-            .resources(new V1ResourceRequirements()
-                .putRequestsItem("storage", Quantity.fromString("10Gi"))))
-        .metadata(new V1ObjectMetaBuilder()
-            .withName(pvcName)
-            .withNamespace(namespace)
-            .build()
-            .putLabelsItem("weblogic.resourceVersion", "domain-v2")
-            .putLabelsItem("weblogic.domainUid", domainUid));
-
-    boolean success = assertDoesNotThrow(
-        () -> TestActions.createPersistentVolumeClaim(v1pvc),
-        "Persistent volume claim creation failed, "
-        + "look at the above console log messages for failure reason in ApiException responsebody"
-    );
-    assertTrue(success, "PersistentVolumeClaim creation failed");
-
-    V1PersistentVolume v1pv = new V1PersistentVolume()
-        .spec(new V1PersistentVolumeSpec()
-            .addAccessModesItem("ReadWriteMany")
-            .storageClassName(domainUid + "-weblogic-domain-storage-class")
-            .volumeMode("Filesystem")
-            .putCapacityItem("storage", Quantity.fromString("10Gi"))
-            .persistentVolumeReclaimPolicy("Recycle")
-            .hostPath(new V1HostPathVolumeSource()
-                .path(System.getProperty("java.io.tmpdir") + "/" + domainUid + "-persistentVolume")))
-        .metadata(new V1ObjectMetaBuilder()
-            .withName(pvName)
-            .withNamespace(namespace)
-            .build()
-            .putLabelsItem("weblogic.resourceVersion", "domain-v2")
-            .putLabelsItem("weblogic.domainUid", domainUid));
-    success = assertDoesNotThrow(
-        () -> TestActions.createPersistentVolume(v1pv),
-        "Persistent volume creation failed, "
-        + "look at the above console log messages for failure reason in ApiException responsebody"
-    );
-    assertTrue(success, "PersistentVolume creation failed");
   }
 
   /**
