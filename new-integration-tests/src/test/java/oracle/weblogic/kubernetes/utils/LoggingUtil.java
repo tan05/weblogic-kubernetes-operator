@@ -78,6 +78,13 @@ public class LoggingUtil {
   public static void collectLogs(String namespace, String resultDir) {
     logger.info("Collecting logs in namespace : {0}", namespace);
 
+    // get events
+    try {
+      writeToFile(Kubernetes.listNamespacedEvents(namespace), resultDir, namespace + ".list.events.log");
+    } catch (Exception ex) {
+      logger.warning("Listing events failed, not collecting any data for events");
+    }
+
     // get service accounts
     try {
       writeToFile(Kubernetes.listServiceAccounts(namespace), resultDir,
@@ -184,13 +191,6 @@ public class LoggingUtil {
       writeToFile(Kubernetes.listPods(namespace, null), resultDir, namespace + ".list.pods.log");
     } catch (Exception ex) {
       logger.warning("Listing pods failed, not collecting any data for pod configuration");
-    }
-
-    // get events
-    try {
-      writeToFile(Kubernetes.listNamespacedEvents(namespace), resultDir, namespace + ".list.events.log");
-    } catch (Exception ex) {
-      logger.warning("Listing events failed, not collecting any data for events");
     }
 
     // get domain/operator pods
