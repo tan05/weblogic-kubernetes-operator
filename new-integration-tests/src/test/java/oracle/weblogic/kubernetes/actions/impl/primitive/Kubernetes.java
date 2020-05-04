@@ -247,7 +247,7 @@ public class Kubernetes implements LoggedTest {
             V1SecretList.class, // the api list type class
             "", // the api group
             "v1", // the api version
-            "serviceaccounts", // the resource plural
+            "secrets", // the resource plural
             apiClient //the api client
         );
 
