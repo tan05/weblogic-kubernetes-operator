@@ -130,7 +130,7 @@ public class LoggingUtil {
     }
     // write pv list
     try {
-      writeToFile(pvList, resultDir, ".list.persistent-volumes.log");
+      writeToFile(pvList, resultDir, "list.persistent-volumes.log");
     } catch (IOException ex) {
       logger.warning(ex.getMessage());
     }
@@ -184,6 +184,13 @@ public class LoggingUtil {
       writeToFile(Kubernetes.listPods(namespace, null), resultDir, namespace + ".list.pods.log");
     } catch (Exception ex) {
       logger.warning("Listing pods failed, not collecting any data for pod configuration");
+    }
+
+    // get events
+    try {
+      writeToFile(Kubernetes.listNamespacedEvents(namespace), resultDir, namespace + ".list.events.log");
+    } catch (Exception ex) {
+      logger.warning("Listing events failed, not collecting any data for events");
     }
 
     // get domain/operator pods

@@ -42,6 +42,7 @@ import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1ConfigMapList;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1DeploymentList;
+import io.kubernetes.client.openapi.models.V1EventList;
 import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1JobList;
 import io.kubernetes.client.openapi.models.V1Namespace;
@@ -637,6 +638,37 @@ public class Kubernetes implements LoggedTest {
         return  false;
       }
     };
+  }
+
+  // --------------------------- Events ---------------------------------------------------
+
+  /**
+   * List events in a namespace.
+   *
+   * @param namespace name of the namespace in which to list events
+   * @return V1EventList list of {@link V1EventList} objects
+   * @throws ApiException when listing events fails
+   */
+  public static V1EventList listNamespacedEvents(String namespace) throws ApiException {
+    V1EventList events = null;
+    try {
+      events = coreV1Api.listNamespacedEvent(
+          namespace, // String | namespace.
+          PRETTY, // String | If 'true', then the output is pretty printed.
+          ALLOW_WATCH_BOOKMARKS, // Boolean | allowWatchBookmarks requests watch events with type "BOOKMARK".
+          null, // String | The continue option should be set when retrieving more results from the server.
+          null, // String | A selector to restrict the list of returned objects by their fields.
+          null, // String | A selector to restrict the list of returned objects by their labels.
+          null, // Integer | limit is a maximum number of responses to return for a list call.
+          RESOURCE_VERSION, // String | Shows changes that occur after that particular version of a resource.
+          TIMEOUT_SECONDS, // Integer | Timeout for the list call.
+          Boolean.FALSE // Boolean | Watch for changes to the described resources.
+      );
+    } catch (ApiException apex) {
+      logger.warning(apex.getResponseBody());
+      throw apex;
+    }
+    return events;
   }
 
   // --------------------------- Custom Resource Domain -----------------------------------
