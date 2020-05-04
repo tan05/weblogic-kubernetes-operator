@@ -38,7 +38,6 @@ import oracle.weblogic.kubernetes.annotations.tags.MustNotRunInParallel;
 import oracle.weblogic.kubernetes.annotations.tags.Slow;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
 import oracle.weblogic.kubernetes.utils.ExecResult;
-import oracle.weblogic.kubernetes.utils.LoggingUtil;
 import org.awaitility.core.ConditionFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -159,6 +158,11 @@ class ItMiiDomain implements LoggedTest {
                 .namespace(opNamespace)
                 .name(serviceAccountName))));
     logger.info("Created service account: {0}", serviceAccountName);
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException ex) {
+      logger.info(ex.getMessage());
+    }
 
     // get Operator image name
     operatorImage = getOperatorImageName();
@@ -183,6 +187,11 @@ class ItMiiDomain implements LoggedTest {
         String.format("createSecret failed for %s", REPO_SECRET_NAME));
     assertTrue(secretCreated, String.format("createSecret failed while creating secret %s in namespace",
                   REPO_SECRET_NAME, opNamespace));
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException ex) {
+      logger.info(ex.getMessage());
+    }
 
     // map with secret
     Map<String, Object> secretNameMap = new HashMap<String, Object>();
@@ -227,7 +236,6 @@ class ItMiiDomain implements LoggedTest {
                 condition.getElapsedTimeInMS(),
                 condition.getRemainingTimeInMS()))
         .until(operatorIsRunning(opNamespace));
-    LoggingUtil.generateLog(new ItMiiDomain(), namespaces);
 
   }
 
