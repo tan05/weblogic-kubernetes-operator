@@ -75,7 +75,6 @@ import oracle.weblogic.kubernetes.extensions.LoggedTest;
 import oracle.weblogic.kubernetes.utils.ExecResult;
 import org.awaitility.core.ConditionFactory;
 
-import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.with;
@@ -667,26 +666,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
-      List<V1Event> items = events.getItems();
-      logger.info("ORIGINAL LIST");
-      logger.info(dump(items));
-      logger.info("COLLECTION SORTED LIST");
-      Collections.sort(items, (V1Event o1, V1Event o2) ->
-          o1.getMetadata().getCreationTimestamp()
-              .compareTo(o2.getMetadata().getCreationTimestamp()));
-      logger.info(dump(items));
-      logger.info("BUBBLE SORTED LIST");
-      for (int i = 0; i < items.size(); i++) {
-        for (int j = 1; j < (items.size() - i); j++) {
-          if (items.get(j - 1).getMetadata().getCreationTimestamp()
-              .compareTo(items.get(j).getMetadata().getCreationTimestamp()) <= 0) {
-            V1Event e = items.get(j - 1);
-            items.set(j - 1, items.get(j));
-            items.set(j, e);
-          }
-        }
-      }
-      logger.info(dump(items));
+      Collections.sort(events.getItems(), (V1Event e1, V1Event e2)
+          -> e1.getMetadata().getCreationTimestamp()
+              .compareTo(e2.getMetadata().getCreationTimestamp()));
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
