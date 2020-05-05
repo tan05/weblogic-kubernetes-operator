@@ -158,6 +158,11 @@ class ItMiiDomain implements LoggedTest {
                 .namespace(opNamespace)
                 .name(serviceAccountName))));
     logger.info("Created service account: {0}", serviceAccountName);
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException ex) {
+      logger.warning("Sleep interrupted.");
+    }
 
     // get Operator image name
     operatorImage = getOperatorImageName();
@@ -182,6 +187,12 @@ class ItMiiDomain implements LoggedTest {
         String.format("createSecret failed for %s", REPO_SECRET_NAME));
     assertTrue(secretCreated, String.format("createSecret failed while creating secret %s in namespace",
                   REPO_SECRET_NAME, opNamespace));
+
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException ex) {
+      logger.warning("Sleep interrupted.");
+    }
 
     // map with secret
     Map<String, Object> secretNameMap = new HashMap<String, Object>();
@@ -269,6 +280,12 @@ class ItMiiDomain implements LoggedTest {
     assertDoesNotThrow(() -> createDomainSecret(encryptionSecretName, "weblogicenc",
             "weblogicenc", domainNamespace),
              String.format("createSecret failed for %s", encryptionSecretName));
+
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException ex) {
+      logger.warning("Sleep interrupted.");
+    }
 
     // create the domain CR
     createDomainResource(domainUid, domainNamespace, adminSecretName, REPO_SECRET_NAME,
@@ -450,6 +467,12 @@ class ItMiiDomain implements LoggedTest {
     assertDoesNotThrow(() -> createDomainSecret(encryptionSecretName, "weblogicencdomain3",
             "weblogicencdomain3", domainNamespace1),
              String.format("createSecret failed for %s", encryptionSecretName));
+
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException ex) {
+      logger.warning("Sleep interrupted.");
+    }
 
     // create the domain CR
     createDomainResource(domainUid, domainNamespace1, adminSecretName, REPO_SECRET_NAME,
