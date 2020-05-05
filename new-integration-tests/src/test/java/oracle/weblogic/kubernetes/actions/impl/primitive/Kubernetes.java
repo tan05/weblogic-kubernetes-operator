@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -648,13 +649,13 @@ public class Kubernetes implements LoggedTest {
    * List events in a namespace.
    *
    * @param namespace name of the namespace in which to list events
-   * @return V1EventList list of {@link V1EventList} objects
+   * @return List of {@link V1Event} objects
    * @throws ApiException when listing events fails
    */
-  public static V1EventList listNamespacedEvents(String namespace) throws ApiException {
-    V1EventList events = null;
+  public static List<V1Event> listNamespacedEvents(String namespace) throws ApiException {
+    List<V1Event> events = null;
     try {
-      events = coreV1Api.listNamespacedEvent(
+      V1EventList list = coreV1Api.listNamespacedEvent(
           namespace, // String | namespace.
           PRETTY, // String | If 'true', then the output is pretty printed.
           ALLOW_WATCH_BOOKMARKS, // Boolean | allowWatchBookmarks requests watch events with type "BOOKMARK".
@@ -666,9 +667,9 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
-      Collections.sort(events.getItems(), (V1Event e1, V1Event e2)
-          -> e1.getMetadata().getCreationTimestamp()
-              .compareTo(e2.getMetadata().getCreationTimestamp()));
+      events = list.getItems();
+      events.sort(Comparator.comparing(e -> e.getMetadata().getCreationTimestamp()));
+      Collections.reverse(events);
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
