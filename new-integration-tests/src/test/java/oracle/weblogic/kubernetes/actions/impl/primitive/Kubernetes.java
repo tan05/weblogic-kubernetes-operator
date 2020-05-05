@@ -42,6 +42,7 @@ import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1ConfigMapList;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1DeploymentList;
+import io.kubernetes.client.openapi.models.V1Event;
 import io.kubernetes.client.openapi.models.V1EventList;
 import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1JobList;
@@ -664,6 +665,17 @@ public class Kubernetes implements LoggedTest {
           TIMEOUT_SECONDS, // Integer | Timeout for the list call.
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
+      List<V1Event> items = events.getItems();
+      for (int i = 0; i < items.size(); i++) {
+        for (int j = 1; j < (items.size() - i); j++) {
+          if (items.get(j - 1).getMetadata().getCreationTimestamp()
+              .compareTo(items.get(j).getMetadata().getCreationTimestamp()) <= 0) {
+            V1Event e = items.get(j - 1);
+            items.set(j - 1, items.get(j));
+            items.set(j, e);
+          }
+        }
+      }
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
