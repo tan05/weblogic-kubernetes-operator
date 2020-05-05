@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -74,6 +75,7 @@ import oracle.weblogic.kubernetes.extensions.LoggedTest;
 import oracle.weblogic.kubernetes.utils.ExecResult;
 import org.awaitility.core.ConditionFactory;
 
+import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.with;
@@ -666,6 +668,14 @@ public class Kubernetes implements LoggedTest {
           Boolean.FALSE // Boolean | Watch for changes to the described resources.
       );
       List<V1Event> items = events.getItems();
+      logger.info("ORIGINAL LIST");
+      logger.info(dump(items));
+      logger.info("COLLECTION SORTED LIST");
+      Collections.sort(items, (V1Event o1, V1Event o2) ->
+          o1.getMetadata().getCreationTimestamp()
+              .compareTo(o2.getMetadata().getCreationTimestamp()));
+      logger.info(dump(items));
+      logger.info("BUBBLE SORTED LIST");
       for (int i = 0; i < items.size(); i++) {
         for (int j = 1; j < (items.size() - i); j++) {
           if (items.get(j - 1).getMetadata().getCreationTimestamp()
@@ -676,6 +686,7 @@ public class Kubernetes implements LoggedTest {
           }
         }
       }
+      logger.info(dump(items));
     } catch (ApiException apex) {
       logger.warning(apex.getResponseBody());
       throw apex;
