@@ -103,6 +103,13 @@ public class CleanupUtil {
                     condition.getElapsedTimeInMS(),
                     condition.getRemainingTimeInMS()))
             .until(namespaceNotFound(namespace));
+        List<String> listNamespaces = Kubernetes.listNamespaces();
+        for (String listNamespace : listNamespaces) {
+          if (listNamespace.startsWith("ns-")) {
+            logger.info("Deleting {0}", listNamespace);
+            Kubernetes.deleteNamespace(listNamespace);
+          }
+        }
       }
     } catch (Exception ex) {
       logger.warning(ex.getMessage());
