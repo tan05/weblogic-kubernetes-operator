@@ -158,11 +158,6 @@ class ItMiiDomain implements LoggedTest {
                 .namespace(opNamespace)
                 .name(serviceAccountName))));
     logger.info("Created service account: {0}", serviceAccountName);
-    try {
-      Thread.sleep(10000);
-    } catch (InterruptedException ex) {
-      logger.info(ex.getMessage());
-    }
 
     // get Operator image name
     operatorImage = getOperatorImageName();
@@ -187,11 +182,6 @@ class ItMiiDomain implements LoggedTest {
         String.format("createSecret failed for %s", REPO_SECRET_NAME));
     assertTrue(secretCreated, String.format("createSecret failed while creating secret %s in namespace",
                   REPO_SECRET_NAME, opNamespace));
-    try {
-      Thread.sleep(10000);
-    } catch (InterruptedException ex) {
-      logger.info(ex.getMessage());
-    }
 
     // map with secret
     Map<String, Object> secretNameMap = new HashMap<String, Object>();

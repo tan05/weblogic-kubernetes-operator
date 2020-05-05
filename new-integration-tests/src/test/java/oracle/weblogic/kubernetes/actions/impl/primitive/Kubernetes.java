@@ -73,7 +73,6 @@ import oracle.weblogic.kubernetes.extensions.LoggedTest;
 import oracle.weblogic.kubernetes.utils.ExecResult;
 import org.awaitility.core.ConditionFactory;
 
-import static io.kubernetes.client.util.Yaml.dump;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.with;
@@ -1032,7 +1031,6 @@ public class Kubernetes implements LoggedTest {
           null, // indicates that modifications should not be persisted
           null // fieldManager is a name associated with the actor
       );
-      logger.info(dump(listSecrets(namespace)));
     } catch (ApiException apex) {
       logger.severe(apex.getResponseBody());
       throw apex;
