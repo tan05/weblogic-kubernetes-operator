@@ -33,6 +33,7 @@ import oracle.kubernetes.operator.utils.InMemoryCertificates;
 import oracle.kubernetes.operator.wlsconfig.WlsClusterConfig;
 import oracle.kubernetes.operator.wlsconfig.WlsDomainConfig;
 import oracle.kubernetes.operator.wlsconfig.WlsServerConfig;
+import oracle.kubernetes.operator.work.Packet;
 import oracle.kubernetes.utils.TestUtils;
 import oracle.kubernetes.weblogic.domain.DomainConfigurator;
 import oracle.kubernetes.weblogic.domain.DomainConfiguratorFactory;
@@ -40,6 +41,7 @@ import oracle.kubernetes.weblogic.domain.model.Domain;
 import oracle.kubernetes.weblogic.domain.model.DomainStatus;
 import oracle.kubernetes.weblogic.domain.model.ManagedServer;
 import oracle.kubernetes.weblogic.domain.model.ServerStatus;
+import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,7 +78,7 @@ public class DomainProcessorTest {
   private List<Memento> mementos = new ArrayList<>();
   private KubernetesTestSupport testSupport = new KubernetesTestSupport();
   private DomainConfigurator domainConfigurator;
-  private Map<String, DomainPresenceInfo> presenceInfoMap = new HashMap<>();
+  private Map<String, Map<String, DomainPresenceInfo>> presenceInfoMap = new HashMap<>();
   private DomainProcessorImpl processor =
       new DomainProcessorImpl(DomainProcessorDelegateStub.createDelegate(testSupport));
   private Domain domain = DomainProcessorTestSetup.createTestDomain();
@@ -231,6 +233,17 @@ public class DomainProcessorTest {
     processor.makeRightDomainPresence(info, true, false, false);
 
     assertThat(info.getExternalService(ADMIN_NAME), notNullValue());
+  }
+
+  @Test
+  public void whenOldDomainHasIntrospectVersion_addToPacket() {
+    DomainConfiguratorFactory.forDomain(domain).withIntrospectVersion("789");
+    DomainProcessorImpl.registerDomainPresenceInfo(new DomainPresenceInfo(domain));
+
+    final Domain newDomain = DomainProcessorTestSetup.createTestDomain();
+    final Packet packet = testSupport.runSteps(processor.createDomainUpInitialStep(new DomainPresenceInfo(newDomain)));
+
+    MatcherAssert.assertThat(packet.get(ProcessingConstants.DOMAIN_INTROSPECT_VERSION), equalTo("789"));
   }
 
   // todo after external service created, if adminService deleted, delete service
