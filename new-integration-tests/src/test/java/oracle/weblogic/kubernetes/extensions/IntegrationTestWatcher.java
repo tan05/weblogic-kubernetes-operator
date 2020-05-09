@@ -114,6 +114,7 @@ public class IntegrationTestWatcher implements
     printHeader(String.format("Starting beforeAll for %s", className), "-");
     ecNamespace = ExtensionContext.Namespace.create(className);
     context.getStore(ecNamespace).put("BEFORE_ALL", Boolean.TRUE);
+    logger.severe("DEBUG {0}", context.getStore(ecNamespace).get("BEFORE_ALL"));
   }
 
   /**
@@ -127,6 +128,7 @@ public class IntegrationTestWatcher implements
       throws Throwable {
     printHeader(String.format("BeforeAll failed %s", className), "!");
     context.getStore(ecNamespace).put("BEFORE_ALL", Boolean.FALSE);
+    logger.severe("DEBUG {0}", context.getStore(ecNamespace).get("BEFORE_ALL"));
     collectLogs(context, "beforeAll");
     throw throwable;
   }
@@ -301,6 +303,7 @@ public class IntegrationTestWatcher implements
     printHeader(String.format("Ending Test Suite %s", className), "+");
     logger.info("Starting cleanup after test class");
     CleanupUtil.cleanup(namespaces);
+    logger.severe("DEBUG {0}", context.getStore(ecNamespace).get("BEFORE_ALL"));
     if (!context.getStore(ecNamespace).get("BEFORE_ALL", Boolean.class)) {
       logger.severe("Failing the test since beforeAll failed");
       throw new Exception("BeforeAll failed");
@@ -319,6 +322,7 @@ public class IntegrationTestWatcher implements
       throws Throwable {
     printHeader(String.format("AfterAll failed for %s", className), "!");
     collectLogs(context, "afterAll");
+    logger.severe("DEBUG {0}", context.getStore(ecNamespace).get("BEFORE_ALL"));
     throw throwable;
   }
 
