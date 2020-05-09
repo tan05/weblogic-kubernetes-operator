@@ -58,6 +58,7 @@ public class IntegrationTestWatcher implements
   private String className;
   private String methodName;
   private List namespaces = null;
+  ExtensionContext.Namespace ecNamespace;
   private static final String START_TIME = "start time";
 
   /**
@@ -111,6 +112,8 @@ public class IntegrationTestWatcher implements
 
     printHeader(String.format("Starting Test Suite %s", className), "+");
     printHeader(String.format("Starting beforeAll for %s", className), "-");
+    ecNamespace = ExtensionContext.Namespace.create(className);
+    context.getStore(ecNamespace).put("BEFORE_ALL", Boolean.TRUE);
   }
 
   /**
@@ -120,9 +123,10 @@ public class IntegrationTestWatcher implements
    * @throws Throwable in case of failures
    */
   @Override
-  public void handleBeforeAllMethodExecutionException​(ExtensionContext context, Throwable throwable)
+  public void handleBeforeAllMethodExecutionException(ExtensionContext context, Throwable throwable)
       throws Throwable {
     printHeader(String.format("BeforeAll failed %s", className), "!");
+    context.getStore(ecNamespace).put("BEFORE_ALL", Boolean.FALSE);
     collectLogs(context, "beforeAll");
     throw throwable;
   }
@@ -290,12 +294,17 @@ public class IntegrationTestWatcher implements
   /**
    * Prints log message to mark end of test suite.
    * @param context the current extension context
+   * @throws java.lang.Exception when beforeAll fails
    */
   @Override
-  public void afterAll(ExtensionContext context) {
+  public void afterAll(ExtensionContext context) throws Exception {
     printHeader(String.format("Ending Test Suite %s", className), "+");
     logger.info("Starting cleanup after test class");
     CleanupUtil.cleanup(namespaces);
+    if (!context.getStore(ecNamespace).get("BEFORE_ALL", Boolean.class)) {
+      logger.severe("Failing the test since beforeAll failed");
+      throw new Exception("BeforeAll failed");
+    }
   }
 
 
@@ -310,6 +319,7 @@ public class IntegrationTestWatcher implements
       throws Throwable {
     printHeader(String.format("AfterAll failed for %s", className), "!");
     collectLogs(context, "afterAll");
+    throw throwable;
   }
 
   /**
