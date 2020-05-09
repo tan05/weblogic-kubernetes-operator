@@ -31,6 +31,7 @@ import oracle.weblogic.kubernetes.annotations.Namespaces;
 import oracle.weblogic.kubernetes.annotations.tags.MustNotRunInParallel;
 import oracle.weblogic.kubernetes.annotations.tags.Slow;
 import oracle.weblogic.kubernetes.extensions.LoggedTest;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -60,6 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("Simple validation of integration tests")
@@ -277,6 +279,12 @@ class ItSimpleValidation implements LoggedTest {
         .await().atMost(5, MINUTES)
         // operatorIsRunning() is one of our custom, reusable assertions
         .until(domainExists(domainUid, "v7", domainNamespace1));
+  }
+
+  @AfterAll
+  public void clean() {
+    logger.info("test class cleanup");
+    fail("fail in after all");
   }
 
 }
