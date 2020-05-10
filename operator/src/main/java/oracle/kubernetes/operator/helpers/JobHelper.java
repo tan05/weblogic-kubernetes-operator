@@ -5,7 +5,6 @@ package oracle.kubernetes.operator.helpers;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import io.kubernetes.client.openapi.models.V1DeleteOptions;
 import io.kubernetes.client.openapi.models.V1EnvVar;
@@ -74,7 +73,7 @@ public class JobHelper {
     LOGGER.fine("creatingServers: " + creatingServers(info));
     return topology == null
           || isBringingUpNewDomain(info)
-          || introspectionRequested(packet, info)
+          || introspectionRequested(packet)
           || isModelInImageUpdate(packet, info);
   }
 
@@ -82,11 +81,8 @@ public class JobHelper {
     return runningServersCount(info) == 0 && creatingServers(info);
   }
 
-  private static boolean introspectionRequested(Packet packet, DomainPresenceInfo info) {
-    String oldIntrospectionVersion = (String) packet.get(ProcessingConstants.DOMAIN_INTROSPECT_VERSION);
-    String newIntrospectionVersion = info.getDomain().getIntrospectVersion();
-
-    return !Objects.equals(oldIntrospectionVersion, newIntrospectionVersion);
+  private static boolean introspectionRequested(Packet packet) {
+    return (Boolean) packet.getOrDefault(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED, false);
   }
 
   private static boolean isModelInImageUpdate(Packet packet, DomainPresenceInfo info) {

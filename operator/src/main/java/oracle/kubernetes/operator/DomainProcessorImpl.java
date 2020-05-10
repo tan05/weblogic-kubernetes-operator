@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -65,7 +66,7 @@ import oracle.kubernetes.weblogic.domain.model.Channel;
 import oracle.kubernetes.weblogic.domain.model.Domain;
 
 import static oracle.kubernetes.operator.DomainStatusUpdater.INSPECTING_DOMAIN_PROGRESS_REASON;
-import static oracle.kubernetes.operator.ProcessingConstants.DOMAIN_INTROSPECT_VERSION;
+import static oracle.kubernetes.operator.ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED;
 import static oracle.kubernetes.operator.helpers.LegalNames.toJobIntrospectorName;
 
 public class DomainProcessorImpl implements DomainProcessor {
@@ -794,9 +795,19 @@ public class DomainProcessorImpl implements DomainProcessor {
     @Override
     public NextAction apply(Packet packet) {
       info.setDeleting(false);
-      Optional.ofNullable(getExistingDomainPresenceInfo(info.getNamespace(), info.getDomainUid()))
-            .ifPresent(info -> packet.put(DOMAIN_INTROSPECT_VERSION, info.getDomain().getIntrospectVersion()));
+      packet.put(DOMAIN_INTROSPECT_REQUESTED, !Objects.equals(getNewIntrospectVersion(), getOldIntrospectVersion()));
       return doNext(packet);
+    }
+
+    private String getNewIntrospectVersion() {
+      return info.getDomain().getIntrospectVersion();
+    }
+
+    private String getOldIntrospectVersion() {
+      return Optional.ofNullable(getExistingDomainPresenceInfo(info.getNamespace(), info.getDomainUid()))
+            .map(DomainPresenceInfo::getDomain)
+            .map(Domain::getIntrospectVersion)
+            .orElse(null);
     }
   }
 

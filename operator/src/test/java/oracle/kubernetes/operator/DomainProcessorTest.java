@@ -264,14 +264,26 @@ public class DomainProcessorTest {
   }
 
   @Test
-  public void whenOldDomainHasIntrospectVersion_addToPacket() {
+  public void whenNewDomainHasIntrospectVersionSameAsOldDomain_addFalseToPacket() {
+    DomainConfiguratorFactory.forDomain(domain).withIntrospectVersion("789");
+    DomainProcessorImpl.registerDomainPresenceInfo(new DomainPresenceInfo(domain));
+
+    final Domain newDomain = DomainProcessorTestSetup.createTestDomain();
+    DomainConfiguratorFactory.forDomain(newDomain).withIntrospectVersion("789");
+    final Packet packet = testSupport.runSteps(processor.createDomainUpInitialStep(new DomainPresenceInfo(newDomain)));
+
+    MatcherAssert.assertThat(packet.get(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED), equalTo(false));
+  }
+
+  @Test
+  public void whenNewDomainHasIntrospectVersionDifferentFromOldDomain_addTrueToPacket() {
     DomainConfiguratorFactory.forDomain(domain).withIntrospectVersion("789");
     DomainProcessorImpl.registerDomainPresenceInfo(new DomainPresenceInfo(domain));
 
     final Domain newDomain = DomainProcessorTestSetup.createTestDomain();
     final Packet packet = testSupport.runSteps(processor.createDomainUpInitialStep(new DomainPresenceInfo(newDomain)));
 
-    MatcherAssert.assertThat(packet.get(ProcessingConstants.DOMAIN_INTROSPECT_VERSION), equalTo("789"));
+    MatcherAssert.assertThat(packet.get(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED), equalTo(true));
   }
 
   // todo after external service created, if adminService deleted, delete service

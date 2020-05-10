@@ -735,10 +735,9 @@ public class JobHelperTest {
   }
 
   @Test
-  public void whenIntrospectVersionNotSetToExistingValue_dontRunIntrospector() {
+  public void whenIntrospectNotRequested_dontRunIntrospector() {
     defineTopology();
-    configureDomain().withIntrospectVersion("123");
-    testSupport.addToPacket(ProcessingConstants.DOMAIN_INTROSPECT_VERSION, "123");
+    testSupport.addToPacket(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED, false);
 
     runCreateJob();
 
@@ -746,20 +745,18 @@ public class JobHelperTest {
   }
 
   @Test
-  public void whenIntrospectVersionSetForFirstTime_runIntrospector() {
+  public void whenIntrospectNotSet_dontRunIntrospector() {
     defineTopology();
-    configureDomain().withIntrospectVersion("123");
 
     runCreateJob();
 
-    assertThat(job, notNullValue());
+    assertThat(job, nullValue());
   }
 
   @Test
-  public void whenIntrospectVersionChanged_runIntrospector() {
+  public void whenIntrospectRequestSet_runIntrospector() {
     defineTopology();
-    configureDomain().withIntrospectVersion("123");
-    testSupport.addToPacket(ProcessingConstants.DOMAIN_INTROSPECT_VERSION, "122");
+    testSupport.addToPacket(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED, true);
 
     runCreateJob();
 
