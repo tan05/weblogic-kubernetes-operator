@@ -15,6 +15,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import io.kubernetes.client.openapi.models.V1ConfigMap;
 import io.kubernetes.client.openapi.models.V1ContainerState;
@@ -546,6 +547,7 @@ public class DomainProcessorImpl implements DomainProcessor {
     }
 
     Packet packet = new Packet();
+    recordIntrospectionRequest(packet, info);
     packet
         .getComponents()
         .put(
@@ -562,6 +564,27 @@ public class DomainProcessorImpl implements DomainProcessor {
         isDeleting,
         isWillInterrupt);
   }
+
+  void recordIntrospectionRequest(Packet packet, DomainPresenceInfo info) {
+    packet.put(DOMAIN_INTROSPECT_REQUESTED,
+              !Objects.equals(getNewIntrospectVersion(info), getOldIntrospectVersion(info)));
+  }
+
+  private String getNewIntrospectVersion(DomainPresenceInfo info) {
+    return getIntrospectVersion(info);
+  }
+
+  private String getOldIntrospectVersion(DomainPresenceInfo info) {
+    return getIntrospectVersion(getExistingDomainPresenceInfo(info.getNamespace(), info.getDomainUid()));
+  }
+
+  private String getIntrospectVersion(@Nullable DomainPresenceInfo domainPresenceInfo) {
+    return Optional.ofNullable(domainPresenceInfo)
+          .map(DomainPresenceInfo::getDomain)
+          .map(Domain::getIntrospectVersion)
+          .orElse(null);
+  }
+
 
   private Step readExistingServices(DomainPresenceInfo info) {
     return new CallBuilder()
@@ -795,19 +818,7 @@ public class DomainProcessorImpl implements DomainProcessor {
     @Override
     public NextAction apply(Packet packet) {
       info.setDeleting(false);
-      packet.put(DOMAIN_INTROSPECT_REQUESTED, !Objects.equals(getNewIntrospectVersion(), getOldIntrospectVersion()));
       return doNext(packet);
-    }
-
-    private String getNewIntrospectVersion() {
-      return info.getDomain().getIntrospectVersion();
-    }
-
-    private String getOldIntrospectVersion() {
-      return Optional.ofNullable(getExistingDomainPresenceInfo(info.getNamespace(), info.getDomainUid()))
-            .map(DomainPresenceInfo::getDomain)
-            .map(Domain::getIntrospectVersion)
-            .orElse(null);
     }
   }
 

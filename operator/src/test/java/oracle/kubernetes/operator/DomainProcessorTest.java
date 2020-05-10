@@ -43,7 +43,6 @@ import oracle.kubernetes.weblogic.domain.model.Domain;
 import oracle.kubernetes.weblogic.domain.model.DomainStatus;
 import oracle.kubernetes.weblogic.domain.model.ManagedServer;
 import oracle.kubernetes.weblogic.domain.model.ServerStatus;
-import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -267,23 +266,25 @@ public class DomainProcessorTest {
   public void whenNewDomainHasIntrospectVersionSameAsOldDomain_addFalseToPacket() {
     DomainConfiguratorFactory.forDomain(domain).withIntrospectVersion("789");
     DomainProcessorImpl.registerDomainPresenceInfo(new DomainPresenceInfo(domain));
-
     final Domain newDomain = DomainProcessorTestSetup.createTestDomain();
     DomainConfiguratorFactory.forDomain(newDomain).withIntrospectVersion("789");
-    final Packet packet = testSupport.runSteps(processor.createDomainUpInitialStep(new DomainPresenceInfo(newDomain)));
 
-    MatcherAssert.assertThat(packet.get(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED), equalTo(false));
+    Packet packet = new Packet();
+    processor.recordIntrospectionRequest(packet, new DomainPresenceInfo(newDomain));
+
+    assertThat(packet.get(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED), equalTo(false));
   }
 
   @Test
   public void whenNewDomainHasIntrospectVersionDifferentFromOldDomain_addTrueToPacket() {
     DomainConfiguratorFactory.forDomain(domain).withIntrospectVersion("789");
     DomainProcessorImpl.registerDomainPresenceInfo(new DomainPresenceInfo(domain));
-
     final Domain newDomain = DomainProcessorTestSetup.createTestDomain();
-    final Packet packet = testSupport.runSteps(processor.createDomainUpInitialStep(new DomainPresenceInfo(newDomain)));
 
-    MatcherAssert.assertThat(packet.get(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED), equalTo(true));
+    Packet packet = new Packet();
+    processor.recordIntrospectionRequest(packet, new DomainPresenceInfo(newDomain));
+
+    assertThat(packet.get(ProcessingConstants.DOMAIN_INTROSPECT_REQUESTED), equalTo(true));
   }
 
   // todo after external service created, if adminService deleted, delete service
