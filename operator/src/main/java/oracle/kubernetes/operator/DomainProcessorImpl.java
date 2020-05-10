@@ -525,7 +525,7 @@ public class DomainProcessorImpl implements DomainProcessor {
     // change just by looking at metadata.generation.
     return Optional.ofNullable(liveInfo.getDomain())
           .map(Domain::getSpec)
-          .map(spec -> spec.equals(cachedInfo.getDomain().getSpec()))
+          .map(spec -> !spec.equals(cachedInfo.getDomain().getSpec()))
           .orElse(true);
   }
 
